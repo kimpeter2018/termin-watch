@@ -1,27 +1,49 @@
+// app/page.tsx
 import React from 'react';
+import Link from 'next/link';
 import { Calendar, Bell, Zap, Shield, Clock, CheckCircle } from 'lucide-react';
+import { createClient } from '@/lib/supabase/server';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Navigation */}
       <nav className="border-b border-white/10 backdrop-blur-sm bg-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
+            <Link href="/" className="flex items-center space-x-2">
               <Calendar className="w-8 h-8 text-purple-400" />
               <span className="text-2xl font-bold text-white">TerminWatch</span>
-            </div>
+            </Link>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-gray-300 hover:text-white transition">Features</a>
               <a href="#pricing" className="text-gray-300 hover:text-white transition">Pricing</a>
               <a href="#how-it-works" className="text-gray-300 hover:text-white transition">How It Works</a>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="text-gray-300 hover:text-white transition">Sign In</button>
-              <button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition transform hover:scale-105">
-                Get Started
-              </button>
+              {user ? (
+                <Link
+                  href="/dashboard"
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition transform hover:scale-105"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link href="/auth/signin" className="text-gray-300 hover:text-white transition">
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/auth/signup"
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition transform hover:scale-105"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -48,9 +70,12 @@ export default function HomePage() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition transform hover:scale-105 shadow-lg shadow-purple-500/50">
+            <Link
+              href="/auth/signup"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition transform hover:scale-105 shadow-lg shadow-purple-500/50"
+            >
               Start Monitoring Free
-            </button>
+            </Link>
             <button className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-lg text-lg font-semibold transition backdrop-blur-sm border border-white/20">
               Watch Demo
             </button>
@@ -238,9 +263,12 @@ export default function HomePage() {
                     </li>
                   ))}
                 </ul>
-                <button className={`w-full py-3 rounded-lg font-semibold transition ${plan.popular ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white' : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'}`}>
+                <Link
+                  href="/auth/signup"
+                  className={`block text-center w-full py-3 rounded-lg font-semibold transition ${plan.popular ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white' : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'}`}
+                >
                   Get Started
-                </button>
+                </Link>
               </div>
             ))}
           </div>
@@ -274,8 +302,8 @@ export default function HomePage() {
             <div>
               <h4 className="text-white font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-gray-400 text-sm">
-                <li><a href="#" className="hover:text-white transition">Features</a></li>
-                <li><a href="#" className="hover:text-white transition">Pricing</a></li>
+                <li><a href="#features" className="hover:text-white transition">Features</a></li>
+                <li><a href="#pricing" className="hover:text-white transition">Pricing</a></li>
                 <li><a href="#" className="hover:text-white transition">FAQ</a></li>
               </ul>
             </div>
