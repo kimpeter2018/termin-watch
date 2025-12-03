@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from './AuthProvider';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "./AuthProvider";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  
-  console.log('AuthGuard - user:', user, 'loading:', loading);
+
+  console.log("AuthGuard - user:", user, "loading:", loading);
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/auth/signin');
+      router.push("/auth/signin");
     }
   }, [user, loading, router]);
 

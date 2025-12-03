@@ -1,50 +1,78 @@
-import React from 'react';
-import Link from 'next/link';
-import { Calendar, Bell, Zap, Shield, Clock, CheckCircle, ArrowRight, Star, Users, TrendingUp } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import React from "react";
+import Link from "next/link";
+import {
+  Calendar,
+  Bell,
+  Zap,
+  Shield,
+  Clock,
+  CheckCircle,
+  ArrowRight,
+  Star,
+  User,
+  TrendingUp,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-9 h-9 bg-[#2403fc] rounded-lg flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-white" />
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
+                <Calendar className="w-6 h-6 text-white" strokeWidth={2.5} />
               </div>
-              <span className="text-xl font-bold text-black">TerminWatch</span>
-            </Link>
-            
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-black transition font-medium">Features</a>
-              <a href="#how-it-works" className="text-gray-600 hover:text-black transition font-medium">How It Works</a>
-              <a href="#pricing" className="text-gray-600 hover:text-black transition font-medium">Pricing</a>
+              <span className="text-2xl font-bold text-gray-900 tracking-tight">
+                TerminWatch
+              </span>
             </div>
-            
+
+            <div className="hidden md:flex items-center space-x-8">
+              <a
+                href="#features"
+                className="text-gray-600 hover:text-gray-900 transition font-medium text-[15px]"
+              >
+                Features
+              </a>
+              <a
+                href="#how-it-works"
+                className="text-gray-600 hover:text-gray-900 transition font-medium text-[15px]"
+              >
+                How it Works
+              </a>
+              <a
+                href="#pricing"
+                className="text-gray-600 hover:text-gray-900 transition font-medium text-[15px]"
+              >
+                Pricing
+              </a>
+            </div>
             <div className="flex items-center space-x-4">
               {user ? (
-                <Link
-                  href="/dashboard"
-                  className="bg-[#2403fc] hover:bg-[#1d02c7] text-white px-6 py-2.5 rounded-lg transition font-semibold flex items-center space-x-2"
-                >
-                  <span>Dashboard</span>
-                  <ArrowRight className="w-4 h-4" />
+                <Link href="/dashboard">
+                  <button className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl transition shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30 text-[15px]">
+                    <span>{user.email?.split("@")[0]}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </Link>
               ) : (
                 <>
-                  <Link href="/auth/signin" className="text-gray-700 hover:text-black transition font-semibold">
-                    Sign In
+                  <Link href="/auth/signin">
+                    <button className="text-gray-700 hover:text-gray-900 transition font-semibold text-[15px] px-4 py-2">
+                      Sign In
+                    </button>
                   </Link>
-                  <Link
-                    href="/auth/signup"
-                    className="bg-[#2403fc] hover:bg-[#1d02c7] text-white px-6 py-2.5 rounded-lg transition font-semibold"
-                  >
-                    Get Started
+                  <Link href="/auth/signup">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl transition shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30 text-[15px]">
+                      Get Started
+                    </button>
                   </Link>
                 </>
               )}
@@ -54,368 +82,251 @@ export default async function HomePage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
+      <section className="pt-32 pb-20 px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-4xl mx-auto">
-            {/* Badge */}
-            <div className="inline-flex items-center space-x-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-2 mb-8 animate-fade-in">
-              <Zap className="w-4 h-4 text-[#2403fc]" />
-              <span className="text-sm font-semibold text-[#2403fc]">Automated Appointment Monitoring</span>
-            </div>
-            
-            {/* Main Heading */}
-            <h1 className="text-5xl md:text-7xl font-bold text-black mb-6 leading-tight animate-slide-up">
-              Never Miss Your
-              <span className="block text-gradient">Visa Appointment</span>
-            </h1>
-            
-            {/* Subheading */}
-            <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto animate-slide-up">
-              Get instant alerts when appointment slots become available. Monitor embassy appointments, passport renewals, and government services 24/7.
-            </p>
-            
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-slide-up">
-              <Link
-                href="/auth/signup"
-                className="bg-[#2403fc] hover:bg-[#1d02c7] text-white px-8 py-4 rounded-lg text-lg font-semibold transition shadow-lg hover:shadow-xl flex items-center space-x-2 group"
-              >
-                <span>Start Monitoring Free</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
-              </Link>
-              <button className="bg-white hover:bg-gray-50 text-black px-8 py-4 rounded-lg text-lg font-semibold transition border-2 border-gray-200">
-                Watch Demo
-              </button>
-            </div>
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Left Column - Content */}
+            <div className="space-y-8">
+              {/* Badge */}
+              <div className="inline-flex items-center space-x-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-2">
+                <span className="text-sm font-semibold text-blue-700">
+                  Trusted by 10,000+ visa applicants
+                </span>
+              </div>
 
-            {/* Social Proof */}
-            <div className="flex items-center justify-center space-x-6 text-sm text-gray-600 animate-fade-in">
-              <div className="flex items-center space-x-2">
-                <div className="flex -space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white"></div>
-                  <div className="w-8 h-8 rounded-full bg-gray-300 border-2 border-white"></div>
-                  <div className="w-8 h-8 rounded-full bg-gray-400 border-2 border-white"></div>
-                </div>
-                <span className="font-medium">10,000+ users</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                <span className="ml-1 font-medium">4.9/5</span>
-              </div>
-            </div>
-          </div>
+              {/* Main Heading */}
+              <div className="space-y-6">
+                <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight tracking-tight">
+                  Never Miss Your
+                  <span className="block mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Visa Appointment
+                  </span>
+                </h1>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 max-w-5xl mx-auto">
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-md transition">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-[#2403fc]" />
-                </div>
-              </div>
-              <div className="text-4xl font-bold text-black mb-2">10,000+</div>
-              <div className="text-gray-600 font-medium">Active Monitors</div>
-            </div>
-            
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-md transition">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-              <div className="text-4xl font-bold text-black mb-2">95%</div>
-              <div className="text-gray-600 font-medium">Success Rate</div>
-            </div>
-            
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-md transition">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-purple-600" />
-                </div>
-              </div>
-              <div className="text-4xl font-bold text-black mb-2">24/7</div>
-              <div className="text-gray-600 font-medium">Monitoring</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="py-24 px-4 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="inline-block bg-blue-50 text-[#2403fc] text-sm font-semibold px-4 py-2 rounded-full mb-4">
-              Features
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-4">
-              Everything You Need
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Powerful features to help you secure your appointment
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: <Clock className="w-7 h-7" />,
-                title: "Real-Time Monitoring",
-                description: "Check availability every minute with premium plans. Never miss a slot opening.",
-                color: "bg-blue-50 text-[#2403fc]"
-              },
-              {
-                icon: <Bell className="w-7 h-7" />,
-                title: "Instant Notifications",
-                description: "Get alerts via email, SMS, or WhatsApp the moment a slot becomes available.",
-                color: "bg-green-50 text-green-600"
-              },
-              {
-                icon: <Calendar className="w-7 h-7" />,
-                title: "Date Preferences",
-                description: "Set your preferred dates and time windows for maximum flexibility.",
-                color: "bg-purple-50 text-purple-600"
-              },
-              {
-                icon: <Zap className="w-7 h-7" />,
-                title: "Multiple Monitors",
-                description: "Track multiple appointment systems simultaneously with one account.",
-                color: "bg-yellow-50 text-yellow-600"
-              },
-              {
-                icon: <Shield className="w-7 h-7" />,
-                title: "Safe & Legal",
-                description: "Only monitors public availability. No automated booking or login required.",
-                color: "bg-red-50 text-red-600"
-              },
-              {
-                icon: <CheckCircle className="w-7 h-7" />,
-                title: "Easy Setup",
-                description: "Just paste the URL and select preferences. We handle the rest automatically.",
-                color: "bg-indigo-50 text-indigo-600"
-              }
-            ].map((feature, index) => (
-              <div key={index} className="bg-white border border-gray-200 rounded-2xl p-8 hover:shadow-lg transition group">
-                <div className={`w-14 h-14 ${feature.color} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition`}>
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-bold text-black mb-3">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {feature.description}
+                <p className="text-xl text-gray-600 leading-relaxed max-w-xl">
+                  Automated 24/7 monitoring of visa appointment systems. Get
+                  instant notifications the moment slots become available at
+                  your preferred embassy or consulate.
                 </p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="py-24 px-4 bg-white">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="inline-block bg-blue-50 text-[#2403fc] text-sm font-semibold px-4 py-2 rounded-full mb-4">
-              How It Works
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-4">
-              Get Started in Minutes
-            </h2>
-            <p className="text-xl text-gray-600">
-              Three simple steps to never miss an appointment
-            </p>
-          </div>
-
-          <div className="space-y-8">
-            {[
-              {
-                step: "01",
-                title: "Paste Your URL",
-                description: "Copy the appointment booking page URL from your embassy or government website and paste it into our system.",
-                color: "bg-[#2403fc]"
-              },
-              {
-                step: "02",
-                title: "Set Your Preferences",
-                description: "Choose your preferred dates, time windows, and monitoring frequency. Customize notification channels.",
-                color: "bg-[#2403fc]"
-              },
-              {
-                step: "03",
-                title: "Get Instant Alerts",
-                description: "Receive immediate notifications when matching appointments become available. Book your slot before it's gone.",
-                color: "bg-[#2403fc]"
-              }
-            ].map((item, index) => (
-              <div key={index} className="flex items-start space-x-6 group">
-                <div className={`flex-shrink-0 w-16 h-16 ${item.color} rounded-2xl flex items-center justify-center text-2xl font-bold text-white shadow-lg`}>
-                  {item.step}
-                </div>
-                <div className="flex-grow bg-gray-50 border border-gray-200 rounded-2xl p-8 group-hover:shadow-md transition">
-                  <h3 className="text-2xl font-bold text-black mb-3">
-                    {item.title}
-                  </h3>
-                  <p className="text-gray-600 text-lg leading-relaxed">
-                    {item.description}
-                  </p>
-                </div>
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button className="inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-xl transition shadow-xl shadow-blue-600/25 hover:shadow-2xl hover:shadow-blue-600/30 group">
+                  <span className="text-lg">Start Monitoring Free</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
+                </button>
+                <button className="inline-flex items-center justify-center space-x-2 bg-white hover:bg-gray-50 text-gray-900 font-semibold px-8 py-4 rounded-xl transition border-2 border-gray-200 hover:border-gray-300">
+                  <span className="text-lg">View Demo</span>
+                </button>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-24 px-4 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="inline-block bg-blue-50 text-[#2403fc] text-sm font-semibold px-4 py-2 rounded-full mb-4">
-              Pricing
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-4">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-xl text-gray-600">
-              Choose the plan that fits your needs
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {[
-              {
-                name: "Basic",
-                price: "9",
-                frequency: "Every 30-60 minutes",
-                features: ["1 active monitor", "Email notifications", "Date preferences", "7-day monitoring", "Basic support"],
-                popular: false
-              },
-              {
-                name: "Standard",
-                price: "19",
-                frequency: "Every 10 minutes",
-                features: ["3 active monitors", "Email + SMS alerts", "Advanced preferences", "30-day monitoring", "Priority support", "History tracking"],
-                popular: true
-              },
-              {
-                name: "Premium",
-                price: "39",
-                frequency: "Every 1-3 minutes",
-                features: ["10 active monitors", "All notification types", "Custom preferences", "90-day monitoring", "24/7 dedicated support", "API access", "White-label reports"],
-                popular: false
-              }
-            ].map((plan, index) => (
-              <div key={index} className={`relative bg-white rounded-2xl p-8 ${plan.popular ? 'border-2 border-[#2403fc] shadow-2xl scale-105' : 'border border-gray-200 shadow-sm'}`}>
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-[#2403fc] text-white px-4 py-1 rounded-full text-sm font-bold">
-                    Most Popular
+              {/* Trust Indicators */}
+              <div className="flex flex-wrap items-center gap-8 pt-4">
+                <div className="flex items-center space-x-3">
+                  <div className="flex -space-x-2">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 border-2 border-white"></div>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 border-2 border-white"></div>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 border-2 border-white"></div>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 border-2 border-white"></div>
                   </div>
-                )}
-                
-                <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-black mb-2">{plan.name}</h3>
-                  <div className="flex items-baseline justify-center mb-2">
-                    <span className="text-5xl font-bold text-black">${plan.price}</span>
-                    <span className="text-gray-500 ml-2">/month</span>
+                  <div className="text-left">
+                    <div className="text-sm font-semibold text-gray-900">
+                      10,000+ users
+                    </div>
+                    <div className="text-xs text-gray-500">Active monitors</div>
                   </div>
-                  <p className="text-sm text-[#2403fc] font-semibold">{plan.frequency}</p>
                 </div>
-                
-                <ul className="space-y-4 mb-8">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start">
-                      <CheckCircle className="w-5 h-5 text-[#2403fc] mr-3 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <Link
-                  href="/auth/signup"
-                  className={`block text-center w-full py-3 rounded-lg font-semibold transition ${plan.popular ? 'bg-[#2403fc] hover:bg-[#1d02c7] text-white shadow-lg' : 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-200'}`}
-                >
-                  Get Started
-                </Link>
+
+                <div className="h-10 w-px bg-gray-200"></div>
+
+                <div className="flex items-center space-x-2">
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <svg
+                        key={i}
+                        className="w-5 h-5 text-yellow-400 fill-current"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                      </svg>
+                    ))}
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900">
+                    4.9/5 rating
+                  </span>
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* Right Column - Visual */}
+            <div className="relative lg:pl-8">
+              {/* Main Card */}
+              <div className="relative bg-white border border-gray-200 rounded-2xl shadow-2xl p-8 space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                      <Calendar
+                        className="w-6 h-6 text-white"
+                        strokeWidth={2.5}
+                      />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-500">
+                        Monitor Status
+                      </div>
+                      <div className="text-lg font-bold text-gray-900">
+                        Active
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-full px-3 py-1.5">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-semibold text-green-700">
+                      Live
+                    </span>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-blue-50 rounded-xl p-4">
+                    <div className="text-2xl font-bold text-blue-600 mb-1">
+                      247
+                    </div>
+                    <div className="text-xs font-medium text-blue-700">
+                      Checks Today
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 rounded-xl p-4">
+                    <div className="text-2xl font-bold text-purple-600 mb-1">
+                      3
+                    </div>
+                    <div className="text-xs font-medium text-purple-700">
+                      Slots Found
+                    </div>
+                  </div>
+                  <div className="bg-green-50 rounded-xl p-4">
+                    <div className="text-2xl font-bold text-green-600 mb-1">
+                      98%
+                    </div>
+                    <div className="text-xs font-medium text-green-700">
+                      Uptime
+                    </div>
+                  </div>
+                </div>
+
+                {/* Features List */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-gray-900">
+                        Real-time Monitoring
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Checks every 1-60 minutes
+                      </div>
+                    </div>
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <Bell className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-gray-900">
+                        Instant Alerts
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Email, SMS & WhatsApp
+                      </div>
+                    </div>
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Shield className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-gray-900">
+                        Safe & Legal
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Public data monitoring only
+                      </div>
+                    </div>
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating Notification Card */}
+              <div className="absolute -bottom-6 -left-6 bg-white border border-gray-200 rounded-xl shadow-xl p-4 max-w-xs animate-pulse">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Bell className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-gray-900 mb-1">
+                      New Slot Available!
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      German Embassy - Frankfurt
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      2 minutes ago
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Background Decoration */}
+              <div className="absolute -top-8 -right-8 w-32 h-32 bg-blue-100 rounded-full blur-3xl opacity-50 -z-10"></div>
+              <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-purple-100 rounded-full blur-3xl opacity-50 -z-10"></div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Legal Disclaimer */}
-      <section className="py-12 px-4 bg-yellow-50 border-y border-yellow-200">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="flex items-center justify-center mb-4">
-            <Shield className="w-6 h-6 text-yellow-600" />
-          </div>
-          <p className="text-sm text-gray-700 leading-relaxed">
-            <strong className="font-semibold">Legal Notice:</strong> This service only monitors publicly visible appointment availability information. 
-            We do not interact with, alter, or bypass official appointment systems. We are not affiliated with any government agency or embassy.
-          </p>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-16 px-4 bg-black text-white">
+      {/* Quick Stats Bar */}
+      <section className="py-12 px-6 lg:px-8 bg-gray-50 border-t border-gray-100">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-[#2403fc] rounded-lg flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold">TerminWatch</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-gray-900 mb-2">
+                10,000+
               </div>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                Never miss an appointment again with automated 24/7 monitoring.
-              </p>
+              <div className="text-sm text-gray-600 font-medium">
+                Active Users
+              </div>
             </div>
-            
-            <div>
-              <h4 className="font-bold mb-4">Product</h4>
-              <ul className="space-y-3 text-sm">
-                <li><a href="#features" className="text-gray-400 hover:text-white transition">Features</a></li>
-                <li><a href="#pricing" className="text-gray-400 hover:text-white transition">Pricing</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition">FAQ</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition">Roadmap</a></li>
-              </ul>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-gray-900 mb-2">250K+</div>
+              <div className="text-sm text-gray-600 font-medium">
+                Slots Found
+              </div>
             </div>
-            
-            <div>
-              <h4 className="font-bold mb-4">Legal</h4>
-              <ul className="space-y-3 text-sm">
-                <li><a href="#" className="text-gray-400 hover:text-white transition">Terms of Service</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition">Privacy Policy</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition">Cookie Policy</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition">Disclaimer</a></li>
-              </ul>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-gray-900 mb-2">95%</div>
+              <div className="text-sm text-gray-600 font-medium">
+                Success Rate
+              </div>
             </div>
-            
-            <div>
-              <h4 className="font-bold mb-4">Support</h4>
-              <ul className="space-y-3 text-sm">
-                <li><a href="#" className="text-gray-400 hover:text-white transition">Help Center</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition">Contact Us</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition">Status</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition">Community</a></li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-sm">
-              © 2024 TerminWatch. All rights reserved.
-            </p>
-            <div className="flex items-center space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-400 hover:text-white transition text-sm">Twitter</a>
-              <a href="#" className="text-gray-400 hover:text-white transition text-sm">LinkedIn</a>
-              <a href="#" className="text-gray-400 hover:text-white transition text-sm">GitHub</a>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-gray-900 mb-2">24/7</div>
+              <div className="text-sm text-gray-600 font-medium">
+                Monitoring
+              </div>
             </div>
           </div>
         </div>
-      </footer>
+      </section>
     </div>
   );
 }
