@@ -21,22 +21,23 @@ export default function SignInPage() {
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) throw error
-      
+
+      // Ensure session is ready
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData.session) {
+        throw new Error('Session not available yet')
+      }
+
       router.push('/dashboard')
-      router.refresh()
     } catch (err: unknown) {
       let message = 'Failed to sign in'
-
-      if (err instanceof Error) {
-        message = err.message
-      }  
-
+      if (err instanceof Error) message = err.message
       setError(message)
     } finally {
       setLoading(false)

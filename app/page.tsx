@@ -1,4 +1,3 @@
-// app/page.tsx
 import React from 'react';
 import Link from 'next/link';
 import { Calendar, Bell, Zap, Shield, Clock, CheckCircle } from 'lucide-react';
@@ -29,7 +28,7 @@ export default async function HomePage() {
                   href="/dashboard"
                   className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition transform hover:scale-105"
                 >
-                  Dashboard
+                  {user?.email?.split('@')[0]}
                 </Link>
               ) : (
                 <>
