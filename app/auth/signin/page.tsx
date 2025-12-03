@@ -31,7 +31,7 @@ export default function SignInPage() {
       if (!sessionData.session) {
         throw new Error('Session not available yet')
       }
-
+      console.log('[SignIn] Signed in user:', sessionData.session.user)
       router.push('/dashboard')
     } catch (err: unknown) {
       let message = 'Failed to sign in'

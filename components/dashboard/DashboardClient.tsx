@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, Plus, Bell, LogOut, User as UserIcon, Search, Filter, Clock, Globe, CheckCircle, Pause, Play, Trash2, Edit, Settings, CreditCard } from 'lucide-react';
+import { Calendar, Plus, Bell, LogOut, User as UserIcon, Search, Filter, Clock, Globe, CheckCircle, Pause, Play, Trash2, Edit, Settings, CreditCard, BarChart3, Zap } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -60,92 +60,100 @@ export default function DashboardClient() {
   ];
 
   const stats = [
-    { label: 'Active Monitors', value: '2', icon: <Calendar className="w-5 h-5" />, color: 'purple' },
-    { label: 'Slots Found', value: '7', icon: <CheckCircle className="w-5 h-5" />, color: 'green' },
-    { label: 'Checks Today', value: '342', icon: <Clock className="w-5 h-5" />, color: 'blue' },
-    { label: 'Success Rate', value: '94%', icon: <Globe className="w-5 h-5" />, color: 'pink' }
+    { label: 'Active Monitors', value: '2', icon: <Calendar className="w-5 h-5" />, trend: '+12%', trendUp: true },
+    { label: 'Slots Found', value: '7', icon: <CheckCircle className="w-5 h-5" />, trend: '+25%', trendUp: true },
+    { label: 'Checks Today', value: '342', icon: <Clock className="w-5 h-5" />, trend: '+8%', trendUp: true },
+    { label: 'Success Rate', value: '94%', icon: <BarChart3 className="w-5 h-5" />, trend: '+2%', trendUp: true }
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-500/20 text-green-400 border-green-500/30'
-      case 'paused': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-      case 'error': return 'bg-red-500/20 text-red-400 border-red-500/30'
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+      case 'active': return 'bg-[var(--success-light)] text-[var(--success)] border-[var(--success)]'
+      case 'paused': return 'bg-[var(--warning-light)] text-[var(--warning)] border-[var(--warning)]'
+      case 'error': return 'bg-[var(--error-light)] text-[var(--error)] border-[var(--error)]'
+      default: return 'bg-[var(--gray-100)] text-[var(--gray-600)] border-[var(--gray-300)]'
     }
   };
 
   const getPlanBadgeColor = (plan: string) => {
     switch (plan) {
-      case 'Premium': return 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
-      case 'Standard': return 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-      case 'Basic': return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-      default: return 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+      case 'Premium': return 'bg-gradient-primary text-white shadow-primary'
+      case 'Standard': return 'badge-primary'
+      case 'Basic': return 'badge bg-[var(--gray-100)] text-[var(--gray-600)]'
+      default: return 'badge bg-[var(--gray-100)] text-[var(--gray-600)]'
     }
   };
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="flex items-center justify-center min-h-screen bg-[var(--gray-50)]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-400 mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading profile...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-[var(--gray-200)] border-t-[var(--primary)] mx-auto mb-4"></div>
+          <p className="text-[var(--gray-600)] text-lg font-medium">Loading profile...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-[var(--gray-50)]">
       {/* Navigation */}
-      <nav className="border-b border-white/10 backdrop-blur-sm bg-white/5 sticky top-0 z-50">
+      <nav className="bg-white border-b border-[var(--gray-200)] sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/dashboard" className="flex items-center space-x-2">
-              <Calendar className="w-8 h-8 text-purple-400" />
-              <span className="text-2xl font-bold text-white">TerminWatch</span>
+              <div className="w-9 h-9 bg-[var(--primary)] rounded-lg flex items-center justify-center shadow-md">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold text-[var(--foreground)]">TerminWatch</span>
             </Link>
             
             <div className="flex items-center space-x-4">
-              <button className="relative text-gray-300 hover:text-white transition p-2 rounded-lg hover:bg-white/10">
+              <button className="relative text-[var(--gray-600)] hover:text-[var(--foreground)] transition p-2 rounded-lg hover:bg-[var(--gray-100)]">
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--error)] rounded-full ring-2 ring-white"></span>
               </button>
               
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-3 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition"
+                  className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-[var(--gray-100)] transition"
                 >
-                  <UserIcon className="w-5 h-5 text-purple-400" />
-                  <span className="text-white text-sm hidden md:block">
+                  <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center">
+                    <UserIcon className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-[var(--foreground)] text-sm font-medium hidden md:block">
                     {profile.full_name || user?.email?.split('@')[0]}
                   </span>
                 </button>
                 
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-white/10 rounded-lg shadow-xl py-2">
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-[var(--gray-200)] rounded-xl shadow-lg py-2 animate-scale-in">
+                    <div className="px-4 py-3 border-b border-[var(--gray-200)]">
+                      <p className="text-sm font-semibold text-[var(--foreground)]">{profile.full_name}</p>
+                      <p className="text-xs text-[var(--gray-500)] truncate">{user?.email}</p>
+                    </div>
                     <Link
                       href="/dashboard/settings"
-                      className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/10 hover:text-white transition"
+                      className="flex items-center space-x-3 px-4 py-2.5 text-[var(--gray-700)] hover:bg-[var(--gray-50)] transition"
                     >
                       <Settings className="w-4 h-4" />
-                      <span>Settings</span>
+                      <span className="text-sm font-medium">Settings</span>
                     </Link>
                     <Link
                       href="/dashboard/billing"
-                      className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/10 hover:text-white transition"
+                      className="flex items-center space-x-3 px-4 py-2.5 text-[var(--gray-700)] hover:bg-[var(--gray-50)] transition"
                     >
                       <CreditCard className="w-4 h-4" />
-                      <span>Billing</span>
+                      <span className="text-sm font-medium">Billing</span>
                     </Link>
-                    <hr className="my-2 border-white/10" />
+                    <hr className="my-2 border-[var(--gray-200)]" />
                     <button
                       onClick={handleSignOut}
-                      className="flex items-center space-x-2 px-4 py-2 text-red-400 hover:bg-red-500/10 w-full transition"
+                      className="flex items-center space-x-3 px-4 py-2.5 text-[var(--error)] hover:bg-[var(--error-light)] w-full transition"
                     >
                       <LogOut className="w-4 h-4" />
-                      <span>Sign Out</span>
+                      <span className="text-sm font-medium">Sign Out</span>
                     </button>
                   </div>
                 )}
@@ -159,21 +167,27 @@ export default function DashboardClient() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Dashboard</h1>
-          <p className="text-gray-300">Manage your appointment monitors</p>
+          <h1 className="text-4xl font-bold text-[var(--foreground)] mb-2">Dashboard</h1>
+          <p className="text-[var(--gray-600)]">Monitor and manage your appointment trackers</p>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => (
-            <div key={index} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition">
+            <div key={index} className="card bg-white p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg bg-${stat.color}-500/20`}>
-                  <div className={`text-${stat.color}-400`}>{stat.icon}</div>
+                <div className="p-3 rounded-xl bg-[var(--primary-50)]">
+                  <div className="text-[var(--primary)]">{stat.icon}</div>
+                </div>
+                <div className={`flex items-center space-x-1 text-xs font-semibold ${stat.trendUp ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
+                  <span>{stat.trend}</span>
+                  <svg className={`w-3 h-3 ${stat.trendUp ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
                 </div>
               </div>
-              <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-              <div className="text-sm text-gray-400">{stat.label}</div>
+              <div className="text-3xl font-bold text-[var(--foreground)] mb-1">{stat.value}</div>
+              <div className="text-sm text-[var(--gray-600)] font-medium">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -182,22 +196,22 @@ export default function DashboardClient() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             <div className="relative flex-grow md:flex-grow-0">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[var(--gray-400)]" />
               <input
                 type="text"
                 placeholder="Search monitors..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full md:w-64 bg-white/5 border border-white/20 rounded-lg py-2 pl-10 pr-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full md:w-64"
               />
             </div>
             
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[var(--gray-400)]" />
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="appearance-none bg-white/5 border border-white/20 rounded-lg py-2 pl-10 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer"
+                className="appearance-none pl-10 pr-10 cursor-pointer"
               >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
@@ -207,8 +221,8 @@ export default function DashboardClient() {
             </div>
           </div>
 
-          <button className="inline-flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-2 px-6 rounded-lg transition transform hover:scale-105 shadow-lg shadow-purple-500/50 w-full md:w-auto justify-center">
-            <Plus className="w-5 h-5" />
+          <button className="btn btn-primary w-full md:w-auto">
+            <Plus className="w-5 h-5 mr-2" />
             <span>Create Monitor</span>
           </button>
         </div>
@@ -216,20 +230,20 @@ export default function DashboardClient() {
         {/* Monitors List */}
         <div className="space-y-4">
           {monitors.map((monitor) => (
-            <div key={monitor.id} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition">
+            <div key={monitor.id} className="card bg-white p-6">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 {/* Left Section - Main Info */}
                 <div className="flex-grow space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-semibold text-white">{monitor.name}</h3>
-                        <span className={`text-xs px-2 py-1 rounded-full ${getPlanBadgeColor(monitor.plan)}`}>
+                        <h3 className="text-xl font-semibold text-[var(--foreground)]">{monitor.name}</h3>
+                        <span className={`badge ${getPlanBadgeColor(monitor.plan)}`}>
                           {monitor.plan}
                         </span>
                       </div>
-                      <div className="flex items-center space-x-2 text-sm text-gray-400">
-                        <Globe className="w-4 h-4" />
+                      <div className="flex items-center space-x-2 text-sm text-[var(--gray-600)]">
+                        <Globe className="w-4 h-4 text-[var(--gray-400)]" />
                         <span className="truncate max-w-md">{monitor.url}</span>
                       </div>
                     </div>
@@ -237,28 +251,28 @@ export default function DashboardClient() {
 
                   <div className="flex flex-wrap items-center gap-4 text-sm">
                     <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-purple-400" />
-                      <span className="text-gray-300">{monitor.dateRange}</span>
+                      <Calendar className="w-4 h-4 text-[var(--primary)]" />
+                      <span className="text-[var(--gray-700)] font-medium">{monitor.dateRange}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Clock className="w-4 h-4 text-blue-400" />
-                      <span className="text-gray-300">Every {monitor.frequency}</span>
+                      <Clock className="w-4 h-4 text-[var(--primary)]" />
+                      <span className="text-[var(--gray-700)] font-medium">Every {monitor.frequency}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-gray-400">Last checked:</span>
-                      <span className="text-gray-300">{monitor.lastChecked}</span>
+                      <Zap className="w-4 h-4 text-[var(--gray-400)]" />
+                      <span className="text-[var(--gray-600)]">Last checked: {monitor.lastChecked}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-3">
-                    <span className={`inline-flex items-center space-x-2 text-xs px-3 py-1 rounded-full border ${getStatusColor(monitor.status)}`}>
+                    <span className={`inline-flex items-center space-x-2 text-xs px-3 py-1.5 rounded-full border font-semibold ${getStatusColor(monitor.status)}`}>
                       {monitor.status === 'active' && <Play className="w-3 h-3" />}
                       {monitor.status === 'paused' && <Pause className="w-3 h-3" />}
                       <span className="capitalize">{monitor.status}</span>
                     </span>
                     
                     {monitor.found > 0 && (
-                      <span className="inline-flex items-center space-x-2 text-xs px-3 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                      <span className="badge-success inline-flex items-center space-x-1.5">
                         <CheckCircle className="w-3 h-3" />
                         <span>{monitor.found} slots found</span>
                       </span>
@@ -268,24 +282,24 @@ export default function DashboardClient() {
 
                 {/* Right Section - Actions */}
                 <div className="flex lg:flex-col items-center gap-2">
-                  <button className="flex items-center justify-center space-x-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition flex-1 lg:flex-none lg:w-full">
+                  <button className="btn-secondary flex items-center justify-center space-x-2 flex-1 lg:flex-none lg:w-32">
                     <Edit className="w-4 h-4" />
-                    <span className="text-sm">Edit</span>
+                    <span className="text-sm font-semibold">Edit</span>
                   </button>
                   
                   {monitor.status === 'active' ? (
-                    <button className="flex items-center justify-center space-x-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30 px-4 py-2 rounded-lg transition flex-1 lg:flex-none lg:w-full">
+                    <button className="flex items-center justify-center space-x-2 bg-[var(--warning-light)] hover:bg-[var(--warning-light)] text-[var(--warning)] border border-[var(--warning)] px-4 py-2 rounded-lg transition flex-1 lg:flex-none lg:w-32 font-semibold text-sm">
                       <Pause className="w-4 h-4" />
-                      <span className="text-sm">Pause</span>
+                      <span>Pause</span>
                     </button>
                   ) : (
-                    <button className="flex items-center justify-center space-x-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg transition flex-1 lg:flex-none lg:w-full">
+                    <button className="flex items-center justify-center space-x-2 bg-[var(--success-light)] hover:bg-[var(--success-light)] text-[var(--success)] border border-[var(--success)] px-4 py-2 rounded-lg transition flex-1 lg:flex-none lg:w-32 font-semibold text-sm">
                       <Play className="w-4 h-4" />
-                      <span className="text-sm">Resume</span>
+                      <span>Resume</span>
                     </button>
                   )}
                   
-                  <button className="flex items-center justify-center bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 p-2 rounded-lg transition">
+                  <button className="flex items-center justify-center bg-[var(--error-light)] hover:bg-[var(--error-light)] text-[var(--error)] border border-[var(--error)] p-2 rounded-lg transition">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -293,6 +307,23 @@ export default function DashboardClient() {
             </div>
           ))}
         </div>
+
+        {/* Empty State (if no monitors) */}
+        {monitors.length === 0 && (
+          <div className="card bg-white p-12 text-center">
+            <div className="w-16 h-16 bg-[var(--gray-100)] rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Calendar className="w-8 h-8 text-[var(--gray-400)]" />
+            </div>
+            <h3 className="text-2xl font-bold text-[var(--foreground)] mb-3">No monitors yet</h3>
+            <p className="text-[var(--gray-600)] mb-8 max-w-md mx-auto">
+              Create your first appointment monitor to start tracking available slots
+            </p>
+            <button className="btn btn-primary">
+              <Plus className="w-5 h-5 mr-2" />
+              <span>Create Your First Monitor</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
