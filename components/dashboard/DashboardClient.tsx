@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Calendar,
   Bell,
@@ -12,9 +13,35 @@ import {
   Search,
   TrendingUp,
 } from "lucide-react";
+import { useAuth } from "@/components/auth/AuthProvider";
 
-export default function Dashboard() {
+export default function DashboardClient() {
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const { user, profile, loading, signOut } = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
+  };
+
+  // Display loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Get user display name (from profile or email)
+  const displayName =
+    profile?.full_name || user?.email?.split("@")[0] || "User";
+  const userEmail = user?.email || "";
+  const userAvatar = profile?.avatar_url || user?.user_metadata?.avatar_url;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -42,38 +69,58 @@ export default function Dashboard() {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-white" />
-                  </div>
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt={displayName}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                  )}
                   <span className="text-gray-900 text-sm font-medium hidden md:block">
-                    John Doe
+                    {displayName}
                   </span>
                 </button>
 
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg py-2">
-                    <div className="px-4 py-3 border-b border-gray-200">
-                      <p className="text-sm font-semibold text-gray-900">
-                        John Doe
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        john@example.com
-                      </p>
+                  <>
+                    {/* Backdrop to close menu */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowUserMenu(false)}
+                    />
+
+                    {/* Menu */}
+                    <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-20">
+                      <div className="px-4 py-3 border-b border-gray-200">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {displayName}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {userEmail}
+                        </p>
+                      </div>
+                      <button className="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition w-full">
+                        <Settings className="w-4 h-4" />
+                        <span className="text-sm font-medium">Settings</span>
+                      </button>
+                      <button className="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition w-full">
+                        <CreditCard className="w-4 h-4" />
+                        <span className="text-sm font-medium">Billing</span>
+                      </button>
+                      <hr className="my-2 border-gray-200" />
+                      <button
+                        onClick={handleSignOut}
+                        className="flex items-center space-x-3 px-4 py-2.5 text-red-600 hover:bg-red-50 w-full transition"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span className="text-sm font-medium">Sign Out</span>
+                      </button>
                     </div>
-                    <button className="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition w-full">
-                      <Settings className="w-4 h-4" />
-                      <span className="text-sm font-medium">Settings</span>
-                    </button>
-                    <button className="flex items-center space-x-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition w-full">
-                      <CreditCard className="w-4 h-4" />
-                      <span className="text-sm font-medium">Billing</span>
-                    </button>
-                    <hr className="my-2 border-gray-200" />
-                    <button className="flex items-center space-x-3 px-4 py-2.5 text-red-600 hover:bg-red-50 w-full transition">
-                      <LogOut className="w-4 h-4" />
-                      <span className="text-sm font-medium">Sign Out</span>
-                    </button>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
@@ -85,10 +132,44 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            Welcome back, {displayName}!
+          </h1>
           <p className="text-gray-600">
             Monitor and manage your appointment trackers
           </p>
+        </div>
+
+        {/* User Info Card (for debugging/verification) */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+          <div className="flex items-start space-x-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <User className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-blue-900 mb-1">
+                Account Information
+              </h3>
+              <div className="text-xs text-blue-700 space-y-1">
+                <p>
+                  <span className="font-medium">User ID:</span> {user?.id}
+                </p>
+                <p>
+                  <span className="font-medium">Email:</span> {userEmail}
+                </p>
+                <p>
+                  <span className="font-medium">Full Name:</span>{" "}
+                  {profile?.full_name || "Not set"}
+                </p>
+                <p>
+                  <span className="font-medium">Account Created:</span>{" "}
+                  {profile?.created_at
+                    ? new Date(profile.created_at).toLocaleDateString()
+                    : "Unknown"}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Empty State */}
