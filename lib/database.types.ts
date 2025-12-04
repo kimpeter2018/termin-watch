@@ -1,5 +1,3 @@
-// lib/database.types.ts - Generated types for the database schema
-
 export interface Database {
   public: {
     Tables: {
@@ -72,6 +70,11 @@ export interface Database {
           consecutive_errors: number;
           last_error_message: string | null;
           last_error_at: string | null;
+          days_purchased: number;
+          days_remaining: number;
+          activated_at: string | null;
+          deactivated_at: string | null;
+          auto_renew: boolean;
           created_at: string;
           updated_at: string;
           expires_at: string | null;
@@ -87,6 +90,47 @@ export interface Database {
           | "consecutive_errors"
         >;
         Update: Partial<Database["public"]["Tables"]["trackers"]["Insert"]>;
+      };
+
+      tracker_purchases: {
+        Row: {
+          id: string;
+          tracker_id: string;
+          user_id: string;
+          days_purchased: number;
+          amount_paid: number;
+          currency: string;
+          payment_provider: string | null;
+          payment_intent_id: string | null;
+          payment_status: "pending" | "completed" | "failed" | "refunded";
+          created_at: string;
+          completed_at: string | null;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["tracker_purchases"]["Row"],
+          "id" | "created_at"
+        >;
+        Update: Partial<
+          Database["public"]["Tables"]["tracker_purchases"]["Insert"]
+        >;
+      };
+
+      pricing_plans: {
+        Row: {
+          id: string;
+          days: number;
+          price_usd: number;
+          discount_pct: number;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["pricing_plans"]["Row"],
+          "id" | "created_at"
+        >;
+        Update: Partial<
+          Database["public"]["Tables"]["pricing_plans"]["Insert"]
+        >;
       };
 
       tracker_results: {

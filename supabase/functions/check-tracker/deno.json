@@ -1,0 +1,7 @@
+{
+  "importMap": "../../deno.json",
+  "compilerOptions": {
+    "lib": ["deno.ns", "dom"],
+    "strict": true
+  }
+}
