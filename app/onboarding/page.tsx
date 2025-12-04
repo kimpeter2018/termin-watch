@@ -17,9 +17,52 @@ export default function OnboardingPage() {
   const [fullName, setFullName] = useState("");
   const [passportCountry, setPassportCountry] = useState("");
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isNameFromAuth, setIsNameFromAuth] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const supabase = createClient();
+
+  // Fetch user data on mount
+  React.useEffect(() => {
+    async function fetchUserData() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          // Check if user has full_name from OAuth (Google sign-in)
+          const authFullName = user.user_metadata?.full_name;
+
+          // Fetch existing profile data
+          const { data: profile } = await supabase
+            .from("users")
+            .select("full_name, passport_country")
+            .eq("id", user.id)
+            .single();
+
+          if (profile?.full_name) {
+            setFullName(profile.full_name);
+            setIsNameFromAuth(true);
+          } else if (authFullName) {
+            setFullName(authFullName);
+            setIsNameFromAuth(true);
+          }
+
+          if (profile?.passport_country) {
+            setPassportCountry(profile.passport_country);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+      } finally {
+        setInitialLoading(false);
+      }
+    }
+
+    fetchUserData();
+  }, [supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,10 +97,20 @@ export default function OnboardingPage() {
       );
     } finally {
       setLoading(false);
-      // Redirect to dashboard
       router.push("/dashboard");
     }
   };
+
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center px-4 py-12">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center px-4 py-12">
@@ -107,12 +160,19 @@ export default function OnboardingPage() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
+                  disabled={isNameFromAuth}
                   placeholder="ex.John Doe"
-                  className="w-full bg-white border-2 border-gray-200 rounded-xl py-3.5 pl-12 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
+                  className={`w-full bg-white border-2 border-gray-200 rounded-xl py-3.5 pl-12 pr-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition ${
+                    isNameFromAuth
+                      ? "bg-gray-50 cursor-not-allowed opacity-75"
+                      : ""
+                  }`}
                 />
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                This should match your passport name
+                {isNameFromAuth
+                  ? "Name imported from your account"
+                  : "This should match your passport name"}
               </p>
             </div>
 

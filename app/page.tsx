@@ -19,6 +19,17 @@ export default async function HomePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  let profile = null;
+  if (user) {
+    const { data } = await supabase
+      .from("users")
+      .select("full_name")
+      .eq("id", user.id)
+      .single();
+    profile = data;
+  }
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -58,7 +69,7 @@ export default async function HomePage() {
               {user ? (
                 <Link href="/dashboard">
                   <button className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl transition shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30 text-[15px]">
-                    <span>{user.email?.split("@")[0]}</span>
+                    <span>{profile!.full_name.split(" ")[0]}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </Link>
