@@ -90,14 +90,18 @@ export default function OnboardingPage() {
         .eq("id", user.id);
 
       if (updateError) throw updateError;
+
+      // Wait a bit for DB to update
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Force redirect (router will refetch in dashboard)
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("Onboarding error:", err);
       setError(
         err instanceof Error ? err.message : "Failed to complete onboarding"
       );
-    } finally {
       setLoading(false);
-      router.push("/dashboard");
     }
   };
 
