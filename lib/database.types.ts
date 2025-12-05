@@ -19,33 +19,6 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["users"]["Insert"]>;
       };
 
-      user_subscriptions: {
-        Row: {
-          id: string;
-          user_id: string;
-          plan: "free" | "pro" | "premium";
-          status: "active" | "cancelled" | "past_due" | "paused";
-          max_trackers: number;
-          min_check_interval_minutes: number;
-          notification_channels: ("email" | "sms" | "whatsapp" | "push")[];
-          stripe_customer_id: string | null;
-          stripe_subscription_id: string | null;
-          stripe_price_id: string | null;
-          current_period_start: string | null;
-          current_period_end: string | null;
-          cancel_at_period_end: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["user_subscriptions"]["Row"],
-          "id" | "created_at" | "updated_at"
-        >;
-        Update: Partial<
-          Database["public"]["Tables"]["user_subscriptions"]["Insert"]
-        >;
-      };
-
       trackers: {
         Row: {
           id: string;
@@ -56,7 +29,10 @@ export interface Database {
           embassy_code: string;
           visa_type: string;
           target_url: string;
-          check_interval_minutes: 1 | 5 | 15 | 30 | 60;
+
+          check_interval_minutes: number; // NOW ANY INTEGER (5, 15, 30, 60)
+          max_check_interval_minutes: number | null; // NEW — from purchased plan
+
           last_checked_at: string | null;
           next_check_at: string | null;
           preferred_date_from: string | null;
@@ -72,15 +48,18 @@ export interface Database {
           consecutive_errors: number;
           last_error_message: string | null;
           last_error_at: string | null;
+
           days_purchased: number;
           days_remaining: number;
           activated_at: string | null;
           deactivated_at: string | null;
           auto_renew: boolean;
+
           created_at: string;
           updated_at: string;
           expires_at: string | null;
         };
+
         Insert: Omit<
           Database["public"]["Tables"]["trackers"]["Row"],
           | "id"
@@ -100,6 +79,7 @@ export interface Database {
           tracker_id: string;
           user_id: string;
           days_purchased: number;
+          check_interval_minutes: number; // NEW
           amount_paid: number;
           currency: string;
           payment_provider: string | null;
@@ -121,6 +101,7 @@ export interface Database {
         Row: {
           id: string;
           days: number;
+          check_interval_minutes: number; // NEW
           price_usd: number;
           discount_pct: number;
           is_active: boolean;
@@ -331,13 +312,6 @@ export type User = Database["public"]["Tables"]["users"]["Row"];
 export type UserInsert = Database["public"]["Tables"]["users"]["Insert"];
 export type UserUpdate = Database["public"]["Tables"]["users"]["Update"];
 
-export type Subscription =
-  Database["public"]["Tables"]["user_subscriptions"]["Row"];
-export type SubscriptionInsert =
-  Database["public"]["Tables"]["user_subscriptions"]["Insert"];
-export type SubscriptionUpdate =
-  Database["public"]["Tables"]["user_subscriptions"]["Update"];
-
 export type Tracker = Database["public"]["Tables"]["trackers"]["Row"];
 export type TrackerInsert = Database["public"]["Tables"]["trackers"]["Insert"];
 export type TrackerUpdate = Database["public"]["Tables"]["trackers"]["Update"];
@@ -372,30 +346,3 @@ export type AuditLogUpdate =
 export type UserTrackerStats =
   Database["public"]["Views"]["v_user_tracker_stats"]["Row"];
 export type RecentSlot = Database["public"]["Views"]["v_recent_slots"]["Row"];
-
-// ============================================
-// Plan Limits Configuration
-// ============================================
-
-export const PLAN_LIMITS = {
-  free: {
-    max_trackers: 1,
-    min_check_interval_minutes: 60,
-    notification_channels: ["email"] as const,
-    max_notifications_per_day: 10,
-  },
-  pro: {
-    max_trackers: 5,
-    min_check_interval_minutes: 5,
-    notification_channels: ["email", "sms"] as const,
-    max_notifications_per_day: 100,
-  },
-  premium: {
-    max_trackers: 999, // "unlimited"
-    min_check_interval_minutes: 1,
-    notification_channels: ["email", "sms", "whatsapp", "push"] as const,
-    max_notifications_per_day: 1000,
-  },
-} as const;
-
-export type PlanType = keyof typeof PLAN_LIMITS;
