@@ -96,7 +96,7 @@ export default function TrackerUpgradeCard({
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-blue-100">Starting from</div>
-                <div className="text-2xl font-bold">$1.99</div>
+                <div className="text-2xl font-bold">€1.99</div>
               </div>
               <div className="text-right">
                 <div className="text-xs text-blue-100">Save up to</div>

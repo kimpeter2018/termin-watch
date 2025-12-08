@@ -1,4 +1,7 @@
-import React from "react";
+import { EmbassyConfig, GermanVisaType } from "@/lib/database.types";
+import { MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 // Type definitions
 type CheckInterval = 5 | 15 | 30 | 60;
@@ -56,25 +59,42 @@ const PRICING: Record<CheckInterval, PricingTier> = {
   60: { basePrice: 0.59, discount7: 10, discount15: 20, discount30: 35 },
 };
 
-export default function CreateTrackerModal() {
-  const [isOpen, setIsOpen] = React.useState(true);
-  const [step, setStep] = React.useState(1);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState("");
+interface CreateTrackerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+export default function CreateTrackerModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: CreateTrackerModalProps) {
+  const supabase = createClient();
+
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Form state
-  const [name, setName] = React.useState("");
-  const [locationType, setLocationType] = React.useState("embassy");
-  const [selectedLocation, setSelectedLocation] = React.useState("");
-  const [visaType, setVisaType] = React.useState("national");
-  const [checkInterval, setCheckInterval] = React.useState<CheckInterval>(15);
-  const [dateFrom, setDateFrom] = React.useState("");
-  const [dateTo, setDateTo] = React.useState("");
-  const [emailNotifications, setEmailNotifications] = React.useState(true);
-  const [smsNotifications, setSmsNotifications] = React.useState(false);
+  const [name, setName] = useState("");
+  const [locationType, setLocationType] = useState<
+    "embassy" | "auslaenderbehorde"
+  >("embassy");
+  const [embassies, setEmbassies] = useState<EmbassyConfig[]>([]);
+  const [auslaenderbehoerden, setAuslaenderbehoerden] = useState<
+    EmbassyConfig[]
+  >([]);
+  const [selectedLocation, setSelectedLocation] = useState("");
+  const [visaType, setVisaType] = useState("national");
+  const [checkInterval, setCheckInterval] = useState<CheckInterval>(15);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [smsNotifications, setSmsNotifications] = useState(false);
 
   // Pricing calculation
-  const [pricing, setPricing] = React.useState({
+  const [pricing, setPricing] = useState({
     totalDays: 0,
     subtotal: 0,
     discountPercent: 0,
@@ -82,70 +102,13 @@ export default function CreateTrackerModal() {
     finalPrice: 0,
   });
 
-  // Fetch data on mount
-  React.useEffect(() => {
-    async function fetchData() {
-      try {
-        setDataLoading(true);
-
-        // Fetch locations
-        const locationsRes = await fetch("/api/locations");
-        const locationsData = await locationsRes.json();
-
-        const embassyList = locationsData.locations.filter(
-          (loc: EmbassyLocation) => !loc.code.startsWith("ABH-")
-        );
-        const abhList = locationsData.locations.filter((loc: EmbassyLocation) =>
-          loc.code.startsWith("ABH-")
-        );
-
-        setEmbassies(embassyList);
-        setAuslaenderbehoerden(abhList);
-
-        // Fetch pricing plans
-        const pricingRes = await fetch("/api/pricing/plans");
-        const pricingData = await pricingRes.json();
-
-        const pricingMap: Record<CheckInterval, PricingTier> = {} as Record<
-          CheckInterval,
-          PricingTier
-        >;
-        pricingData.plans.forEach((plan: any) => {
-          pricingMap[plan.check_interval_minutes as CheckInterval] = {
-            basePrice: parseFloat(plan.base_price_per_day),
-            discount7: plan.discount_7_days,
-            discount15: plan.discount_15_days,
-            discount30: plan.discount_30_days,
-          };
-        });
-
-        setPricingPlans(pricingMap);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load locations and pricing");
-      } finally {
-        setDataLoading(false);
-      }
-    }
-
-    if (isOpen) {
-      fetchData();
-    }
-  }, [isOpen]);
-
-  React.useEffect(() => {
-    if (dateFrom && dateTo && checkInterval) {
-      calculatePricing();
-    }
-  }, [dateFrom, dateTo, checkInterval]);
-
   const calculatePricing = () => {
     const from = new Date(dateFrom);
     const to = new Date(dateTo);
     const days =
       Math.ceil((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    const plan = pricingPlans[checkInterval];
+    const plan = PRICING[checkInterval];
     const subtotal = plan.basePrice * days;
 
     let discountPercent = 0;
@@ -165,89 +128,117 @@ export default function CreateTrackerModal() {
     });
   };
 
+  useEffect(() => {
+    if (dateFrom && dateTo && checkInterval) {
+      calculatePricing();
+    }
+  }, [dateFrom, dateTo, checkInterval]);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      const res = await fetch("/api/locations");
+      const json = await res.json();
+      const allLocations: EmbassyConfig[] = json.locations;
+
+      if (!json.error && allLocations) {
+        const embassyList = allLocations.filter(
+          (loc) => !loc.code.startsWith("ABH-")
+        );
+        const abhList = allLocations.filter((loc) =>
+          loc.code.startsWith("ABH-")
+        );
+
+        setEmbassies(embassyList);
+        setAuslaenderbehoerden(abhList);
+      }
+    };
+
+    fetchLocations();
+  }, []);
+
   const handleSubmit = async () => {
+    setError("");
     setLoading(true);
+
     try {
+      // Validation
+      if (!name.trim()) {
+        throw new Error("Please enter a tracker name");
+      }
+
+      if (!selectedLocation) {
+        throw new Error("Please select a location");
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       // Get selected location details
-      const allLocations = [...embassies, ...auslaenderbehoerden];
-      const location = allLocations.find(
+      const location = [...embassies, ...auslaenderbehoerden].find(
         (loc) => loc.code === selectedLocation
       );
 
-      if (!location) {
-        throw new Error("Location not found");
-      }
+      if (!location) throw new Error("Invalid location selected");
 
-      // Prepare tracker data
-      const trackerData = {
+      // Create tracker
+      const { error: insertError } = await supabase.from("trackers").insert({
+        user_id: user.id,
         name: name.trim(),
         description: `Monitoring ${location.name} for ${visaType} appointments`,
         embassy_code: location.code,
         visa_type: visaType,
-        target_url: "", // Will be set from embassy_configs
+        target_url: location.base_url,
+        check_interval_minutes: checkInterval,
+        preferred_date_from: dateFrom || null,
+        preferred_date_to: dateTo || null,
         notification_channels: [
           emailNotifications && "email",
           smsNotifications && "sms",
-        ].filter(Boolean),
-        notify_on_any_slot: true,
-      };
-
-      const purchaseData = {
-        check_interval_minutes: checkInterval,
-        date_range_start: dateFrom,
-        date_range_end: dateTo,
-        base_price: pricing.subtotal,
-        discount_applied: pricing.discountPercent,
-        discount_amount: pricing.discountAmount,
-        final_price: pricing.finalPrice,
-      };
-
-      // Create Stripe checkout session
-      const response = await fetch("/api/trackers/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trackerData,
-          purchaseData,
-        }),
+        ].filter(Boolean) as string[],
+        status: "active",
+        next_check_at: new Date().toISOString(),
       });
 
-      const data = await response.json();
+      if (insertError) throw insertError;
 
-      if (data.sessionUrl) {
-        // Redirect to Stripe checkout
-        window.location.href = data.sessionUrl;
-      } else {
-        throw new Error("Failed to create checkout session");
-      }
-    } catch (err) {
-      console.error("Submission error:", err);
-      setError(err instanceof Error ? err.message : "Failed to create tracker");
+      // Success!
+      onSuccess();
+      resetForm();
+      onClose();
+    } catch (error) {
+      console.error("Error Creating Tracker", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to submit tracker";
+      setError(message || "Failed to create tracker");
+    } finally {
       setLoading(false);
     }
   };
 
+  const resetForm = () => {
+    setStep(1);
+    setName("");
+    setSelectedLocation("");
+    setVisaType("national");
+    setDateFrom("");
+    setDateTo("");
+    setEmailNotifications(true);
+    setSmsNotifications(false);
+    setError("");
+  };
   if (!isOpen) return null;
+
+  const locations =
+    locationType === "embassy" ? embassies : auslaenderbehoerden;
+  const availableVisaTypes =
+    locations.find((loc) => loc.code === selectedLocation)
+      ?.supported_visa_types || [];
 
   const selectedInterval = CHECK_INTERVALS.find(
     (i) => i.value === checkInterval
   );
-  const locations =
-    locationType === "embassy" ? embassies : auslaenderbehoerden;
-  const selectedLoc = [...embassies, ...auslaenderbehoerden].find(
-    (l) => l.code === selectedLocation
-  );
-
-  if (dataLoading) {
-    return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 text-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading locations and pricing...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -265,7 +256,7 @@ export default function CreateTrackerModal() {
               </p>
             </div>
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={onClose}
               className="text-white hover:bg-white/20 rounded-lg p-2 transition"
             >
               <svg
@@ -429,34 +420,39 @@ export default function CreateTrackerModal() {
                   <label className="block text-sm font-semibold text-gray-900 mb-2">
                     Select Location
                   </label>
-                  <select
-                    value={selectedLocation}
-                    onChange={(e) => {
-                      setSelectedLocation(e.target.value);
-                      setVisaType("national");
-                    }}
-                    className="w-full bg-white border border-gray-300 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  >
-                    <option value="">Choose a location...</option>
-                    {locations.map((loc) => (
-                      <option key={loc.code} value={loc.code}>
-                        {loc.name} ({loc.city})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <select
+                      value={selectedLocation}
+                      onChange={(e) => {
+                        setSelectedLocation(e.target.value);
+                        setVisaType("national");
+                      }}
+                      className="w-full bg-white border border-gray-300 rounded-lg py-3 pl-11 pr-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                    >
+                      <option value="">Choose a location...</option>
+                      {locations.map((loc) => (
+                        <option key={loc.code} value={loc.code}>
+                          {loc.name} ({loc.city})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
-                {selectedLocation && selectedLoc && (
+                {selectedLocation && (
                   <div>
                     <label className="block text-sm font-semibold text-gray-900 mb-2">
                       Visa/Appointment Type
                     </label>
                     <select
                       value={visaType}
-                      onChange={(e) => setVisaType(e.target.value)}
-                      className="w-full bg-white border border-gray-300 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                      onChange={(e) =>
+                        setVisaType(e.target.value as GermanVisaType)
+                      }
+                      className="w-full bg-white border border-gray-300 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                     >
-                      {selectedLoc.supported_visa_types.map((type) => (
+                      {availableVisaTypes.map((type) => (
                         <option key={type} value={type}>
                           {type.charAt(0).toUpperCase() +
                             type.slice(1).replace(/_/g, " ")}
@@ -516,7 +512,7 @@ export default function CreateTrackerModal() {
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-gray-900">
-                              ${pricingPlans[interval.value].basePrice}
+                              ${PRICING[interval.value].basePrice}
                             </div>
                             <div className="text-xs text-gray-500">per day</div>
                           </div>
@@ -611,19 +607,19 @@ export default function CreateTrackerModal() {
                       <div className="flex justify-between">
                         <span className="text-gray-600">7+ days:</span>
                         <span className="font-medium text-gray-900">
-                          {pricingPlans[checkInterval].discount7}% off
+                          {PRICING[checkInterval].discount7}% off
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">15+ days:</span>
                         <span className="font-medium text-gray-900">
-                          {pricingPlans[checkInterval].discount15}% off
+                          {PRICING[checkInterval].discount15}% off
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">30+ days:</span>
-                        <span className="font-medium text-emerald-600 font-semibold">
-                          {pricingPlans[checkInterval].discount30}% off
+                        <span className="font-medium text-emerald-600">
+                          {PRICING[checkInterval].discount30}% off
                         </span>
                       </div>
                     </div>
@@ -697,7 +693,7 @@ export default function CreateTrackerModal() {
                           SMS Notifications
                         </div>
                         <div className="text-sm text-gray-600">
-                          +$0.10 per alert
+                          +€0.10 per alert
                         </div>
                       </div>
                     </label>
@@ -745,7 +741,7 @@ export default function CreateTrackerModal() {
             </button>
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={onClose}
                 className="text-gray-700 hover:text-gray-900 font-semibold px-4 py-2 rounded-lg hover:bg-gray-200 transition"
               >
                 Cancel

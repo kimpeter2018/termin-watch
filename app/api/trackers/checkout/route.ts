@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       line_items: [
         {
           price_data: {
-            currency: "usd",
+            currency: "eur",
             unit_amount: Math.round(purchaseData.final_price * 100),
             product_data: {
               name: `${trackerData.name}`,
