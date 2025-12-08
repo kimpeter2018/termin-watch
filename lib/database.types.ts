@@ -73,14 +73,40 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["trackers"]["Insert"]>;
       };
 
+      pricing_plans: {
+        Row: {
+          id: string;
+          check_interval_minutes: 5 | 15 | 30 | 60;
+          base_price_per_day: number;
+          discount_7_days: number;
+          discount_15_days: number;
+          discount_30_days: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["pricing_plans"]["Row"],
+          "id" | "created_at" | "updated_at"
+        >;
+        Update: Partial<
+          Database["public"]["Tables"]["pricing_plans"]["Insert"]
+        >;
+      };
+
       tracker_purchases: {
         Row: {
           id: string;
           tracker_id: string;
           user_id: string;
+          check_interval_minutes: 5 | 15 | 30 | 60;
           days_purchased: number;
-          check_interval_minutes: number; // NEW
-          amount_paid: number;
+          date_range_start: string; // ISO date
+          date_range_end: string; // ISO date
+          base_price: number;
+          discount_applied: number; // Percentage
+          discount_amount: number; // Dollar amount
+          final_price: number;
           currency: string;
           payment_provider: string | null;
           payment_intent_id: string | null;
@@ -94,25 +120,6 @@ export interface Database {
         >;
         Update: Partial<
           Database["public"]["Tables"]["tracker_purchases"]["Insert"]
-        >;
-      };
-
-      pricing_plans: {
-        Row: {
-          id: string;
-          days: number;
-          check_interval_minutes: number; // NEW
-          price_usd: number;
-          discount_pct: number;
-          is_active: boolean;
-          created_at: string;
-        };
-        Insert: Omit<
-          Database["public"]["Tables"]["pricing_plans"]["Row"],
-          "id" | "created_at"
-        >;
-        Update: Partial<
-          Database["public"]["Tables"]["pricing_plans"]["Insert"]
         >;
       };
 
@@ -346,3 +353,45 @@ export type AuditLogUpdate =
 export type UserTrackerStats =
   Database["public"]["Views"]["v_user_tracker_stats"]["Row"];
 export type RecentSlot = Database["public"]["Views"]["v_recent_slots"]["Row"];
+
+// Pricing calculation helper types
+export interface PricingCalculation {
+  checkInterval: 5 | 15 | 30 | 60;
+  dateFrom: string;
+  dateTo: string;
+  totalDays: number;
+  basePricePerDay: number;
+  subtotal: number;
+  discountPercent: number;
+  discountAmount: number;
+  finalPrice: number;
+  checksPerDay: number;
+  totalChecks: number;
+}
+
+export interface PricingPlan {
+  id: string;
+  checkIntervalMinutes: 5 | 15 | 30 | 60;
+  basePricePerDay: number;
+  discount7Days: number;
+  discount15Days: number;
+  discount30Days: number;
+  checksPerDay: number; // Calculated field
+  displayName: string; // e.g., "Premium (5 min)"
+}
+
+export type CheckInterval = 5 | 15 | 30 | 60;
+
+export const CHECK_INTERVAL_LABELS: Record<CheckInterval, string> = {
+  5: "Every 5 minutes (Premium)",
+  15: "Every 15 minutes (Pro)",
+  30: "Every 30 minutes (Standard)",
+  60: "Every hour (Basic)",
+};
+
+export const CHECKS_PER_DAY: Record<CheckInterval, number> = {
+  5: 288,
+  15: 96,
+  30: 48,
+  60: 24,
+};

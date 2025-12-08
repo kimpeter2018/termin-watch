@@ -22,7 +22,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify webhook signature
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
@@ -33,7 +32,6 @@ export async function POST(request: Request) {
 
     const supabase = await createClient();
 
-    // Handle different event types
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
@@ -44,18 +42,6 @@ export async function POST(request: Request) {
       case "checkout.session.expired": {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log("Checkout session expired:", session.id);
-        break;
-      }
-
-      case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        console.log("Payment succeeded:", paymentIntent.id);
-        break;
-      }
-
-      case "payment_intent.payment_failed": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        console.error("Payment failed:", paymentIntent.id);
         break;
       }
 
@@ -78,34 +64,43 @@ async function handleSuccessfulPayment(
   supabase: any
 ) {
   try {
-    const trackerId = session.metadata?.tracker_id;
     const userId = session.metadata?.user_id;
-    const daysPurchased = parseInt(session.metadata?.days_purchased || "0");
+    const trackerData = JSON.parse(session.metadata?.tracker_data || "{}");
+    const purchaseData = JSON.parse(session.metadata?.purchase_data || "{}");
 
-    if (!trackerId || !userId || !daysPurchased) {
+    if (!userId || !trackerData || !purchaseData) {
       console.error("Missing metadata in session:", session.id);
       return;
     }
 
-    // Add days to tracker using database function
-    const { data, error } = await supabase.rpc("add_tracker_days", {
-      p_tracker_id: trackerId,
-      p_days: daysPurchased,
-      p_amount: (session.amount_total || 0) / 100, // Convert cents to dollars
-      p_payment_intent_id: session.payment_intent as string,
-    });
+    // Add payment intent ID to purchase data
+    purchaseData.payment_intent_id = session.payment_intent as string;
+
+    // Use database function to create tracker with purchase
+    const { data: trackerId, error } = await supabase.rpc(
+      "create_tracker_with_purchase",
+      {
+        p_user_id: userId,
+        p_tracker_data: trackerData,
+        p_purchase_data: purchaseData,
+      }
+    );
 
     if (error) {
-      console.error("Error adding tracker days:", error);
+      console.error("Error creating tracker:", error);
       return;
     }
 
-    console.log(
-      `Successfully added ${daysPurchased} days to tracker ${trackerId}`
-    );
+    console.log(`Successfully created tracker ${trackerId} with purchase`);
 
-    // Send confirmation email (to be implemented)
-    await sendPurchaseConfirmation(userId, trackerId, daysPurchased, supabase);
+    // Send confirmation email
+    await sendPurchaseConfirmation(
+      userId,
+      trackerId,
+      trackerData,
+      purchaseData,
+      supabase
+    );
   } catch (error) {
     console.error("Error handling successful payment:", error);
   }
@@ -114,46 +109,47 @@ async function handleSuccessfulPayment(
 async function sendPurchaseConfirmation(
   userId: string,
   trackerId: string,
-  days: number,
+  trackerData: any,
+  purchaseData: any,
   supabase: any
 ) {
-  // Get user and tracker details
   const { data: user } = await supabase
     .from("users")
     .select("email, full_name")
     .eq("id", userId)
     .single();
 
-  const { data: tracker } = await supabase
-    .from("trackers")
-    .select("name, embassy_code")
-    .eq("id", trackerId)
-    .single();
+  if (!user) return;
 
-  if (!user || !tracker) return;
+  const dateFrom = new Date(purchaseData.date_range_start).toLocaleDateString();
+  const dateTo = new Date(purchaseData.date_range_end).toLocaleDateString();
+  const days =
+    Math.ceil(
+      (new Date(purchaseData.date_range_end).getTime() -
+        new Date(purchaseData.date_range_start).getTime()) /
+        (1000 * 60 * 60 * 24)
+    ) + 1;
 
-  // Create notification record (email will be sent by notification service)
   await supabase.from("notifications").insert({
     tracker_id: trackerId,
     user_id: userId,
     type: "email",
     channel_destination: user.email,
-    subject: `✅ Purchase Confirmed: ${days} Tracker-Days`,
+    subject: `✅ Tracker Activated: ${trackerData.name}`,
     message: `
 Hi ${user.full_name || "there"},
 
-Your purchase of ${days} tracker-day${days > 1 ? "s" : ""} has been confirmed!
+Your appointment tracker has been activated!
 
-Tracker: ${tracker.name}
-Location: ${tracker.embassy_code}
-Monitoring Duration: ${days} day${days > 1 ? "s" : ""}
+📍 Location: ${trackerData.embassy_code}
+📅 Monitoring Period: ${dateFrom} - ${dateTo} (${days} days)
+⏱️ Check Frequency: Every ${purchaseData.check_interval_minutes} minutes
+💰 Amount Paid: $${purchaseData.final_price.toFixed(2)}
 
-Your tracker is now active and checking for available appointment slots.
-You'll receive notifications as soon as slots become available.
+Your tracker is now actively monitoring for available appointment slots.
+You'll receive instant notifications when slots become available.
 
-View your tracker: ${
-      process.env.NEXT_PUBLIC_APP_URL
-    }/dashboard/trackers/${trackerId}
+View your tracker: ${process.env.NEXT_PUBLIC_APP_URL}/dashboard
 
 Best regards,
 TerminWatch Team
