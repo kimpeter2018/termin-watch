@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,9 +13,12 @@ import {
   Search,
   TrendingUp,
   Zap,
+  CheckCircle,
+  XCircle,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import CreateTrackerModal from "@/components/trackers/CreateTrackerModal";
 import TrackersList from "@/components/trackers/TrackersList";
@@ -22,11 +26,15 @@ import TrackersList from "@/components/trackers/TrackersList";
 export default function DashboardClient() {
   const { user, profile, signOut } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [paymentStatus, setPaymentStatus] = useState<
+    "success" | "cancelled" | null
+  >(null);
   const [stats, setStats] = useState({
     totalTrackers: 0,
     activeTrackers: 0,
@@ -34,6 +42,22 @@ export default function DashboardClient() {
     totalSlotsFound: 0,
   });
   const [userPlan, setUserPlan] = useState<"free" | "pro" | "premium">("free");
+
+  // Check for payment status in URL
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "success") {
+      setPaymentStatus("success");
+      // Refresh trackers list after successful payment
+      setRefreshTrigger((prev) => prev + 1);
+      // Clear URL params
+      router.replace("/dashboard");
+    } else if (payment === "cancelled") {
+      setPaymentStatus("cancelled");
+      // Clear URL params
+      router.replace("/dashboard");
+    }
+  }, [searchParams, router]);
 
   const fetchStats = async () => {
     if (!user) return;
@@ -71,7 +95,6 @@ export default function DashboardClient() {
   useEffect(() => {
     fetchStats();
     fetchUserPlan();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTrigger]);
 
   const handleSignOut = async () => {
@@ -85,6 +108,52 @@ export default function DashboardClient() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Payment Status Messages */}
+      {paymentStatus === "success" && (
+        <div className="fixed top-6 right-4 z-50 animate-slide-down">
+          <div className="bg-green-50 border border-green-200 rounded-xl shadow-lg p-4 flex items-start space-x-3 max-w-md">
+            <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-green-900">
+                Payment Successful!
+              </h3>
+              <p className="text-sm text-green-700 mt-1">
+                Your tracker has been created and is now monitoring for
+                appointments.
+              </p>
+            </div>
+            <button
+              onClick={() => setPaymentStatus(null)}
+              className="text-green-600 hover:text-green-800"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {paymentStatus === "cancelled" && (
+        <div className="fixed top-6 right-4 z-50 animate-slide-down">
+          <div className="bg-orange-50 border border-orange-200 rounded-xl shadow-lg p-4 flex items-start space-x-3 max-w-md">
+            <XCircle className="w-6 h-6 text-orange-600 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-orange-900">
+                Payment Cancelled
+              </h3>
+              <p className="text-sm text-orange-700 mt-1">
+                Your payment was cancelled. No charges were made.
+              </p>
+            </div>
+            <button
+              onClick={() => setPaymentStatus(null)}
+              className="text-orange-600 hover:text-orange-800"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -132,12 +201,10 @@ export default function DashboardClient() {
 
                 {showUserMenu && (
                   <>
-                    {/* Backdrop */}
                     <div
                       className="fixed inset-0 z-10"
                       onClick={() => setShowUserMenu(false)}
                     />
-                    {/* Menu */}
                     <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-20">
                       <div className="px-4 py-3 border-b border-gray-200">
                         <p className="text-sm font-semibold text-gray-900">
@@ -259,12 +326,10 @@ export default function DashboardClient() {
         {/* Trackers List or Empty State */}
         {stats.totalTrackers === 0 ? (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-12 text-center">
-            {/* Icon */}
             <div className="w-20 h-20 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <Search className="w-10 h-10 text-blue-600" />
             </div>
 
-            {/* Content */}
             <h2 className="text-3xl font-bold text-gray-900 mb-3">
               No trackers yet
             </h2>
@@ -273,7 +338,6 @@ export default function DashboardClient() {
               tracker. Get notified instantly when slots become available.
             </p>
 
-            {/* CTA Button */}
             <button
               onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-xl transition shadow-lg shadow-blue-600/25 hover:shadow-xl hover:shadow-blue-600/30 group"
@@ -282,7 +346,6 @@ export default function DashboardClient() {
               <span className="text-lg">Create Your First Tracker</span>
             </button>
 
-            {/* Help Text */}
             <div className="mt-12 pt-8 border-t border-gray-200">
               <p className="text-sm text-gray-500 mb-4">
                 Need help getting started?
@@ -311,7 +374,6 @@ export default function DashboardClient() {
           </div>
         ) : (
           <>
-            {/* Trackers Grid */}
             <TrackersList onRefresh={refreshTrigger} />
           </>
         )}

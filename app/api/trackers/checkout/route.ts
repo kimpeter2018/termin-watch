@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     // Get embassy details for target URL
     const { data: embassy } = await supabase
       .from("embassy_configs")
-      .select("base_url")
+      .select("base_url, name")
       .eq("code", trackerData.embassy_code)
       .single();
 
@@ -33,6 +33,14 @@ export async function POST(request: Request) {
     // Add target URL to tracker data
     trackerData.target_url = embassy.base_url;
 
+    // Calculate days
+    const startDate = new Date(purchaseData.date_range_start);
+    const endDate = new Date(purchaseData.date_range_end);
+    const days =
+      Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1;
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -42,16 +50,11 @@ export async function POST(request: Request) {
             currency: "eur",
             unit_amount: Math.round(purchaseData.final_price * 100),
             product_data: {
-              name: `${trackerData.name}`,
-              description: `${
-                Math.ceil(
-                  (new Date(purchaseData.date_range_end).getTime() -
-                    new Date(purchaseData.date_range_start).getTime()) /
-                    (1000 * 60 * 60 * 24)
-                ) + 1
-              } days monitoring at ${
-                purchaseData.check_interval_minutes
-              } min intervals`,
+              name: trackerData.name,
+              description: `${days} days monitoring at ${embassy.name} - Check every ${purchaseData.check_interval_minutes} min`,
+              images: [
+                "https://images.unsplash.com/photo-1569163139394-de4798aa62b6?w=400",
+              ],
             },
           },
           quantity: 1,
@@ -64,13 +67,17 @@ export async function POST(request: Request) {
       },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=cancelled`,
+      customer_email: user.email,
     });
 
     return NextResponse.json({ sessionUrl: session.url });
   } catch (error) {
     console.error("Error creating checkout:", error);
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      {
+        error: "Failed to create checkout session",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

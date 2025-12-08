@@ -58,7 +58,6 @@ export async function POST(request: Request) {
     );
   }
 }
-
 async function handleSuccessfulPayment(
   session: Stripe.Checkout.Session,
   supabase: any
@@ -73,36 +72,101 @@ async function handleSuccessfulPayment(
       return;
     }
 
-    // Add payment intent ID to purchase data
-    purchaseData.payment_intent_id = session.payment_intent as string;
+    console.log("[WEBHOOK] Processing payment for user:", userId);
 
-    // Use database function to create tracker with purchase
-    const { data: trackerId, error } = await supabase.rpc(
-      "create_tracker_with_purchase",
-      {
-        p_user_id: userId,
-        p_tracker_data: trackerData,
-        p_purchase_data: purchaseData,
-      }
-    );
+    // Calculate days
+    const startDate = new Date(purchaseData.date_range_start);
+    const endDate = new Date(purchaseData.date_range_end);
+    const daysPurchased =
+      Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1;
 
-    if (error) {
-      console.error("Error creating tracker:", error);
+    // Create tracker
+    const { data: tracker, error: trackerError } = await supabase
+      .from("trackers")
+      .insert({
+        user_id: userId,
+        name: trackerData.name,
+        description: trackerData.description,
+        embassy_code: trackerData.embassy_code,
+        visa_type: trackerData.visa_type,
+        target_url: trackerData.target_url,
+        check_interval_minutes: purchaseData.check_interval_minutes,
+        preferred_date_from: trackerData.preferred_date_from,
+        preferred_date_to: trackerData.preferred_date_to,
+        notification_channels: trackerData.notification_channels,
+        notify_on_any_slot: trackerData.notify_on_any_slot || true,
+        days_purchased: daysPurchased,
+        days_remaining: daysPurchased,
+        activated_at: new Date().toISOString(),
+        status: "active",
+        next_check_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (trackerError) {
+      console.error("[WEBHOOK] Error creating tracker:", trackerError);
       return;
     }
 
-    console.log(`Successfully created tracker ${trackerId} with purchase`);
+    console.log("[WEBHOOK] Tracker created:", tracker.id);
+
+    // Create purchase record
+    const { error: purchaseError } = await supabase
+      .from("tracker_purchases")
+      .insert({
+        tracker_id: tracker.id,
+        user_id: userId,
+        check_interval_minutes: purchaseData.check_interval_minutes,
+        days_purchased: daysPurchased,
+        date_range_start: purchaseData.date_range_start,
+        date_range_end: purchaseData.date_range_end,
+        base_price: purchaseData.base_price,
+        discount_applied: purchaseData.discount_applied,
+        discount_amount: purchaseData.discount_amount,
+        final_price: purchaseData.final_price,
+        currency: "usd",
+        payment_provider: "stripe",
+        payment_intent_id: session.payment_intent as string,
+        payment_status: "completed",
+        completed_at: new Date().toISOString(),
+      });
+
+    if (purchaseError) {
+      console.error("[WEBHOOK] Error creating purchase record:", purchaseError);
+    }
+
+    // Log audit event
+    await supabase.from("audit_logs").insert({
+      event_type: "tracker_created_with_purchase",
+      entity_type: "tracker",
+      entity_id: tracker.id,
+      user_id: userId,
+      event_data: {
+        tracker_name: tracker.name,
+        check_interval: purchaseData.check_interval_minutes,
+        days_purchased: daysPurchased,
+        amount_paid: purchaseData.final_price,
+      },
+    });
+
+    console.log(
+      "[WEBHOOK] Successfully processed payment for tracker:",
+      tracker.id
+    );
 
     // Send confirmation email
     await sendPurchaseConfirmation(
       userId,
-      trackerId,
+      tracker.id,
       trackerData,
       purchaseData,
       supabase
     );
   } catch (error) {
-    console.error("Error handling successful payment:", error);
+    console.error("[WEBHOOK] Error handling successful payment:", error);
   }
 }
 

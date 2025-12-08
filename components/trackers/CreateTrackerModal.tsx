@@ -1,5 +1,5 @@
 import { EmbassyConfig, GermanVisaType } from "@/lib/database.types";
-import { MapPin } from "lucide-react";
+import { MapPin, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -170,6 +170,10 @@ export default function CreateTrackerModal({
         throw new Error("Please select a location");
       }
 
+      if (!dateFrom || !dateTo) {
+        throw new Error("Please select date range");
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -182,37 +186,59 @@ export default function CreateTrackerModal({
 
       if (!location) throw new Error("Invalid location selected");
 
-      // Create tracker
-      const { error: insertError } = await supabase.from("trackers").insert({
-        user_id: user.id,
+      // Prepare tracker data
+      const trackerData = {
         name: name.trim(),
         description: `Monitoring ${location.name} for ${visaType} appointments`,
         embassy_code: location.code,
         visa_type: visaType,
         target_url: location.base_url,
-        check_interval_minutes: checkInterval,
-        preferred_date_from: dateFrom || null,
-        preferred_date_to: dateTo || null,
         notification_channels: [
           emailNotifications && "email",
           smsNotifications && "sms",
-        ].filter(Boolean) as string[],
-        status: "active",
-        next_check_at: new Date().toISOString(),
+        ].filter(Boolean),
+        notify_on_any_slot: true,
+        preferred_date_from: dateFrom,
+        preferred_date_to: dateTo,
+      };
+
+      // Prepare purchase data
+      const purchaseData = {
+        check_interval_minutes: checkInterval,
+        date_range_start: dateFrom,
+        date_range_end: dateTo,
+        base_price: pricing.subtotal,
+        discount_applied: pricing.discountPercent,
+        discount_amount: pricing.discountAmount,
+        final_price: pricing.finalPrice,
+      };
+
+      // Create Stripe checkout session
+      const response = await fetch("/api/trackers/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          trackerData,
+          purchaseData,
+        }),
       });
 
-      if (insertError) throw insertError;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create checkout session");
+      }
 
-      // Success!
-      onSuccess();
-      resetForm();
-      onClose();
+      const { sessionUrl } = await response.json();
+
+      // Redirect to Stripe Checkout
+      window.location.href = sessionUrl;
     } catch (error) {
-      console.error("Error Creating Tracker", error);
+      console.error("Error creating checkout:", error);
       const message =
-        error instanceof Error ? error.message : "Failed to submit tracker";
-      setError(message || "Failed to create tracker");
-    } finally {
+        error instanceof Error ? error.message : "Failed to create checkout";
+      setError(message);
       setLoading(false);
     }
   };
@@ -228,6 +254,7 @@ export default function CreateTrackerModal({
     setSmsNotifications(false);
     setError("");
   };
+
   if (!isOpen) return null;
 
   const locations =
@@ -750,7 +777,7 @@ export default function CreateTrackerModal({
                 <button
                   onClick={() => setStep(step + 1)}
                   disabled={
-                    (step === 1 && !name) ||
+                    (step === 1 && (!name || !selectedLocation)) ||
                     (step === 3 && (!dateFrom || !dateTo))
                   }
                   className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -765,7 +792,7 @@ export default function CreateTrackerModal({
                 >
                   {loading ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       <span>Processing...</span>
                     </>
                   ) : (
@@ -908,7 +935,7 @@ export default function CreateTrackerModal({
                   </div>
                 )}
 
-                {/* What's Included */}
+                {/* What;s Included */}
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
                   <div className="text-xs font-semibold text-gray-500 uppercase mb-3">
                     What&apos;s Included
