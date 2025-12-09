@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import CreateTrackerModal from "@/components/trackers/CreateTrackerModal";
 import TrackersList from "@/components/trackers/TrackersList";
 
@@ -27,7 +26,6 @@ export default function DashboardClient() {
   const { user, profile, signOut } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -41,7 +39,6 @@ export default function DashboardClient() {
     totalChecks: 0,
     totalSlotsFound: 0,
   });
-  const [userPlan, setUserPlan] = useState<"free" | "pro" | "premium">("free");
 
   // Check for payment status in URL
   useEffect(() => {
@@ -62,39 +59,28 @@ export default function DashboardClient() {
   const fetchStats = async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from("v_user_tracker_stats")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
+    try {
+      // Use API route instead of direct Supabase access
+      const response = await fetch("/api/dashboard/stats");
 
-    if (!error && data) {
+      if (!response.ok) {
+        throw new Error("Failed to fetch stats");
+      }
+
+      const data = await response.json();
       setStats({
-        totalTrackers: data.total_trackers,
-        activeTrackers: data.active_trackers,
-        totalChecks: data.total_checks,
-        totalSlotsFound: data.total_slots_found,
+        totalTrackers: data.total_trackers || 0,
+        activeTrackers: data.active_trackers || 0,
+        totalChecks: data.total_checks || 0,
+        totalSlotsFound: data.total_slots_found || 0,
       });
-    }
-  };
-
-  const fetchUserPlan = async () => {
-    if (!user) return;
-
-    const { data } = await supabase
-      .from("user_subscriptions")
-      .select("plan")
-      .eq("user_id", user.id)
-      .single();
-
-    if (data) {
-      setUserPlan(data.plan);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
     }
   };
 
   useEffect(() => {
     fetchStats();
-    fetchUserPlan();
   }, [refreshTrigger]);
 
   const handleSignOut = async () => {
@@ -110,7 +96,7 @@ export default function DashboardClient() {
     <div className="min-h-screen bg-gray-50">
       {/* Payment Status Messages */}
       {paymentStatus === "success" && (
-        <div className="fixed top-6 right-4 z-50 animate-slide-down">
+        <div className="fixed top-8 right-4 z-50 animate-slide-down">
           <div className="bg-green-50 border border-green-200 rounded-xl shadow-lg p-4 flex items-start space-x-3 max-w-md">
             <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
             <div className="flex-1">
@@ -133,7 +119,7 @@ export default function DashboardClient() {
       )}
 
       {paymentStatus === "cancelled" && (
-        <div className="fixed top-6 right-4 z-50 animate-slide-down">
+        <div className="fixed top-8 right-4 z-50 animate-slide-down">
           <div className="bg-orange-50 border border-orange-200 rounded-xl shadow-lg p-4 flex items-start space-x-3 max-w-md">
             <XCircle className="w-6 h-6 text-orange-600 flex-shrink-0" />
             <div className="flex-1">
@@ -169,17 +155,6 @@ export default function DashboardClient() {
 
             <div className="flex items-center space-x-4">
               {/* Plan Badge */}
-              <div
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  userPlan === "premium"
-                    ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                    : userPlan === "pro"
-                    ? "bg-blue-100 text-blue-700"
-                    : "bg-gray-100 text-gray-700"
-                }`}
-              >
-                {userPlan.toUpperCase()}
-              </div>
 
               <button className="relative text-gray-600 hover:text-gray-900 transition p-2 rounded-lg hover:bg-gray-100">
                 <Bell className="w-5 h-5" />

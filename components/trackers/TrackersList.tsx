@@ -14,7 +14,6 @@ import {
   Calendar,
   MoreVertical,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import type { Tracker, EmbassyConfig } from "@/lib/database.types";
 
 interface TrackerWithLocation extends Tracker {
@@ -26,10 +25,10 @@ interface TrackersListProps {
 }
 
 export default function TrackersList({ onRefresh }: TrackersListProps) {
-  const supabase = createClient();
   const [trackers, setTrackers] = useState<TrackerWithLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTracker, setSelectedTracker] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTrackers();
@@ -38,36 +37,15 @@ export default function TrackersList({ onRefresh }: TrackersListProps) {
   const fetchTrackers = async () => {
     setLoading(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+      // Use API route instead of direct Supabase access
+      const response = await fetch("/api/trackers");
 
-      const { data: trackersData, error } = await supabase
-        .from("trackers")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Fetch embassy details for each tracker
-      if (trackersData) {
-        const embassyCodes = [
-          ...new Set(trackersData.map((t) => t.embassy_code)),
-        ];
-        const { data: embassies } = await supabase
-          .from("embassy_configs")
-          .select("*")
-          .in("code", embassyCodes);
-
-        const trackersWithLocations = trackersData.map((tracker) => ({
-          ...tracker,
-          embassy: embassies?.find((e) => e.code === tracker.embassy_code),
-        }));
-
-        setTrackers(trackersWithLocations);
+      if (!response.ok) {
+        throw new Error("Failed to fetch trackers");
       }
+
+      const data = await response.json();
+      setTrackers(data.trackers || []);
     } catch (err) {
       console.error("Error fetching trackers:", err);
     } finally {
@@ -79,28 +57,48 @@ export default function TrackersList({ onRefresh }: TrackersListProps) {
     trackerId: string,
     currentStatus: string
   ) => {
-    const newStatus = currentStatus === "active" ? "paused" : "active";
+    setActionLoading(trackerId);
+    try {
+      // Use API route instead of direct Supabase access
+      const response = await fetch(`/api/trackers/${trackerId}/toggle`, {
+        method: "POST",
+      });
 
-    const { error } = await supabase
-      .from("trackers")
-      .update({ status: newStatus })
-      .eq("id", trackerId);
+      if (!response.ok) {
+        throw new Error("Failed to toggle tracker");
+      }
 
-    if (!error) {
-      fetchTrackers();
+      // Refresh the list
+      await fetchTrackers();
+    } catch (error) {
+      console.error("Error toggling tracker:", error);
+      alert("Failed to toggle tracker status");
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const deleteTracker = async (trackerId: string) => {
     if (!confirm("Are you sure you want to delete this tracker?")) return;
 
-    const { error } = await supabase
-      .from("trackers")
-      .delete()
-      .eq("id", trackerId);
+    setActionLoading(trackerId);
+    try {
+      // Use API route instead of direct Supabase access
+      const response = await fetch(`/api/trackers/${trackerId}`, {
+        method: "DELETE",
+      });
 
-    if (!error) {
-      fetchTrackers();
+      if (!response.ok) {
+        throw new Error("Failed to delete tracker");
+      }
+
+      // Refresh the list
+      await fetchTrackers();
+    } catch (error) {
+      console.error("Error deleting tracker:", error);
+      alert("Failed to delete tracker");
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -204,6 +202,7 @@ export default function TrackersList({ onRefresh }: TrackersListProps) {
                     )
                   }
                   className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition"
+                  disabled={actionLoading === tracker.id}
                 >
                   <MoreVertical className="w-5 h-5" />
                 </button>
@@ -222,7 +221,8 @@ export default function TrackersList({ onRefresh }: TrackersListProps) {
                           toggleTrackerStatus(tracker.id, tracker.status);
                           setSelectedTracker(null);
                         }}
-                        className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition w-full text-left"
+                        disabled={actionLoading === tracker.id}
+                        className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition w-full text-left disabled:opacity-50"
                       >
                         {tracker.status === "active" ? (
                           <>
@@ -241,7 +241,8 @@ export default function TrackersList({ onRefresh }: TrackersListProps) {
                           deleteTracker(tracker.id);
                           setSelectedTracker(null);
                         }}
-                        className="flex items-center space-x-3 px-4 py-2 text-red-600 hover:bg-red-50 transition w-full text-left"
+                        disabled={actionLoading === tracker.id}
+                        className="flex items-center space-x-3 px-4 py-2 text-red-600 hover:bg-red-50 transition w-full text-left disabled:opacity-50"
                       >
                         <Trash2 className="w-4 h-4" />
                         <span className="text-sm font-medium">Delete</span>

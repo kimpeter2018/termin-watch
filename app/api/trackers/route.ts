@@ -89,6 +89,10 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log("AUTH USER:", user);
+    console.log("REQUEST BODY:", body);
+    console.log("SUBSCRIPTION:", subscription);
+
     // Create tracker
     const { data: tracker, error } = await supabase
       .from("trackers")
@@ -111,6 +115,8 @@ export async function POST(request: Request) {
       .select()
       .single();
 
+    console.log("TRACKER INSERT RESULT:", tracker);
+    console.log("TRACKER INSERT ERROR:", error);
     if (error) throw error;
 
     // Log audit event

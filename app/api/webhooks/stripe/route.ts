@@ -127,7 +127,7 @@ async function handleSuccessfulPayment(
         discount_applied: purchaseData.discount_applied,
         discount_amount: purchaseData.discount_amount,
         final_price: purchaseData.final_price,
-        currency: "usd",
+        currency: "eur",
         payment_provider: "stripe",
         payment_intent_id: session.payment_intent as string,
         payment_status: "completed",
