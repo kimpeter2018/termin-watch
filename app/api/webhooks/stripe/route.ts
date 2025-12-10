@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
@@ -30,7 +30,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    // CRITICAL: Use service role client for webhooks (no auth cookies available)
+    const supabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     switch (event.type) {
       case "checkout.session.completed": {
@@ -58,6 +62,7 @@ export async function POST(request: Request) {
     );
   }
 }
+
 async function handleSuccessfulPayment(
   session: Stripe.Checkout.Session,
   supabase: any
@@ -73,6 +78,8 @@ async function handleSuccessfulPayment(
     }
 
     console.log("[WEBHOOK] Processing payment for user:", userId);
+    console.log("[WEBHOOK] Tracker data:", trackerData);
+    console.log("[WEBHOOK] Purchase data:", purchaseData);
 
     // Calculate days
     const startDate = new Date(purchaseData.date_range_start);
@@ -81,6 +88,8 @@ async function handleSuccessfulPayment(
       Math.ceil(
         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
       ) + 1;
+
+    console.log("[WEBHOOK] Days purchased:", daysPurchased);
 
     // Create tracker
     const { data: tracker, error: trackerError } = await supabase
@@ -93,6 +102,7 @@ async function handleSuccessfulPayment(
         visa_type: trackerData.visa_type,
         target_url: trackerData.target_url,
         check_interval_minutes: purchaseData.check_interval_minutes,
+        max_check_interval_minutes: purchaseData.check_interval_minutes, // Store the plan's interval
         preferred_date_from: trackerData.preferred_date_from,
         preferred_date_to: trackerData.preferred_date_to,
         notification_channels: trackerData.notification_channels,
@@ -108,7 +118,7 @@ async function handleSuccessfulPayment(
 
     if (trackerError) {
       console.error("[WEBHOOK] Error creating tracker:", trackerError);
-      return;
+      throw trackerError;
     }
 
     console.log("[WEBHOOK] Tracker created:", tracker.id);
@@ -167,6 +177,8 @@ async function handleSuccessfulPayment(
     );
   } catch (error) {
     console.error("[WEBHOOK] Error handling successful payment:", error);
+    // Re-throw to ensure Stripe knows the webhook failed
+    throw error;
   }
 }
 
@@ -208,7 +220,7 @@ Your appointment tracker has been activated!
 📍 Location: ${trackerData.embassy_code}
 📅 Monitoring Period: ${dateFrom} - ${dateTo} (${days} days)
 ⏱️ Check Frequency: Every ${purchaseData.check_interval_minutes} minutes
-💰 Amount Paid: $${purchaseData.final_price.toFixed(2)}
+💰 Amount Paid: €${purchaseData.final_price.toFixed(2)}
 
 Your tracker is now actively monitoring for available appointment slots.
 You'll receive instant notifications when slots become available.
@@ -221,5 +233,5 @@ TerminWatch Team
     status: "pending",
   });
 
-  console.log(`Purchase confirmation queued for ${user.email}`);
+  console.log(`[WEBHOOK] Purchase confirmation queued for ${user.email}`);
 }
