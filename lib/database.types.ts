@@ -30,14 +30,14 @@ export interface Database {
           visa_type: string;
           target_url: string;
 
-          check_interval_minutes: number; // NOW ANY INTEGER (5, 15, 30, 60)
-          max_check_interval_minutes: number | null; // NEW — from purchased plan
+          check_interval_minutes: number; // Can be 1, 5, 15, 30, 60
+          max_check_interval_minutes: number | null;
 
           last_checked_at: string | null;
           next_check_at: string | null;
-          preferred_date_from: string | null;
-          preferred_date_to: string | null;
-          excluded_dates: string[] | null;
+          preferred_date_from: string | null; // Changed from date to string (ISO)
+          preferred_date_to: string | null; // Changed from date to string (ISO)
+          excluded_dates: string[] | null; // Array of date strings
           notification_channels: ("email" | "sms" | "whatsapp" | "push")[];
           notify_on_any_slot: boolean;
           notify_only_preferred_dates: boolean;
@@ -50,7 +50,7 @@ export interface Database {
           last_error_at: string | null;
 
           days_purchased: number;
-          days_remaining: number;
+          days_remaining: number; // Changed to number to match schema
           activated_at: string | null;
           deactivated_at: string | null;
           auto_renew: boolean;
@@ -349,6 +349,19 @@ export type AuditLogInsert =
 export type AuditLogUpdate =
   Database["public"]["Tables"]["audit_logs"]["Update"];
 
+export type PricingPlan = Database["public"]["Tables"]["pricing_plans"]["Row"];
+export type PricingPlanInsert =
+  Database["public"]["Tables"]["pricing_plans"]["Insert"];
+export type PricingPlanUpdate =
+  Database["public"]["Tables"]["pricing_plans"]["Update"];
+
+export type TrackerPurchase =
+  Database["public"]["Tables"]["tracker_purchases"]["Row"];
+export type TrackerPurchaseInsert =
+  Database["public"]["Tables"]["tracker_purchases"]["Insert"];
+export type TrackerPurchaseUpdate =
+  Database["public"]["Tables"]["tracker_purchases"]["Update"];
+
 // View types
 export type UserTrackerStats =
   Database["public"]["Views"]["v_user_tracker_stats"]["Row"];
@@ -367,17 +380,6 @@ export interface PricingCalculation {
   finalPrice: number;
   checksPerDay: number;
   totalChecks: number;
-}
-
-export interface PricingPlan {
-  id: string;
-  checkIntervalMinutes: 5 | 15 | 30 | 60;
-  basePricePerDay: number;
-  discount7Days: number;
-  discount15Days: number;
-  discount30Days: number;
-  checksPerDay: number; // Calculated field
-  displayName: string; // e.g., "Premium (5 min)"
 }
 
 export type CheckInterval = 5 | 15 | 30 | 60;

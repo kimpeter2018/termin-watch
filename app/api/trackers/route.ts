@@ -6,6 +6,60 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-11-17.clover",
 });
 
+// GET /api/trackers - Get all trackers for the current user
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Fetch trackers
+    const { data: trackers, error: trackersError } = await supabase
+      .from("trackers")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (trackersError) {
+      console.error("Error fetching trackers:", trackersError);
+      throw trackersError;
+    }
+
+    // Fetch embassy configs separately
+    if (trackers && trackers.length > 0) {
+      const embassyCodes = [...new Set(trackers.map((t) => t.embassy_code))];
+      const { data: embassies } = await supabase
+        .from("embassy_configs")
+        .select("*")
+        .in("code", embassyCodes);
+
+      // Create a map for quick lookup
+      const embassyMap = new Map(embassies?.map((e) => [e.code, e]) || []);
+
+      // Attach embassy data to each tracker
+      const trackersWithEmbassy = trackers.map((tracker) => ({
+        ...tracker,
+        embassy: embassyMap.get(tracker.embassy_code) || null,
+      }));
+
+      return NextResponse.json({ trackers: trackersWithEmbassy });
+    }
+
+    return NextResponse.json({ trackers: [] });
+  } catch (error) {
+    console.error("Error in GET /api/trackers:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch trackers";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+// POST /api/trackers - Create checkout session for new tracker
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();

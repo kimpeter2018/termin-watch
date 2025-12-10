@@ -4,9 +4,10 @@ import { NextResponse } from "next/server";
 // POST /api/trackers/[id]/toggle - Pause/Resume tracker
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const supabase = await createClient();
     const {
       data: { user },
@@ -19,12 +20,20 @@ export async function POST(
     // Get current status
     const { data: tracker } = await supabase
       .from("trackers")
-      .select("status, user_id")
-      .eq("id", params.id)
+      .select("status, user_id, days_remaining")
+      .eq("id", id)
       .single();
 
     if (!tracker || tracker.user_id !== user.id) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // Don't allow toggling expired trackers
+    if (tracker.status === "expired" || tracker.days_remaining <= 0) {
+      return NextResponse.json(
+        { error: "Cannot resume expired tracker. Please extend first." },
+        { status: 400 }
+      );
     }
 
     // Toggle status
@@ -32,8 +41,14 @@ export async function POST(
 
     const { data: updated, error } = await supabase
       .from("trackers")
-      .update({ status: newStatus })
-      .eq("id", params.id)
+      .update({
+        status: newStatus,
+        // Update next_check_at when resuming
+        ...(newStatus === "active" && {
+          next_check_at: new Date().toISOString(),
+        }),
+      })
+      .eq("id", id)
       .select()
       .single();
 
@@ -43,7 +58,7 @@ export async function POST(
     await supabase.from("audit_logs").insert({
       event_type: newStatus === "active" ? "tracker_resumed" : "tracker_paused",
       entity_type: "tracker",
-      entity_id: params.id,
+      entity_id: id,
       user_id: user.id,
     });
 

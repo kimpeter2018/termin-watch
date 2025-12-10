@@ -4,9 +4,10 @@ import { NextResponse } from "next/server";
 // GET /api/trackers/[id] - Get single tracker
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const supabase = await createClient();
     const {
       data: { user },
@@ -16,29 +17,38 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Fetch tracker
     const { data: tracker, error } = await supabase
       .from("trackers")
-      .select(
-        `
-        *,
-        embassy:embassy_configs!trackers_embassy_code_fkey(*)
-      `
-      )
-      .eq("id", params.id)
+      .select("*")
+      .eq("id", id)
       .eq("user_id", user.id)
       .single();
 
     if (error) throw error;
 
+    // Fetch embassy details separately
+    const { data: embassy } = await supabase
+      .from("embassy_configs")
+      .select("*")
+      .eq("code", tracker.embassy_code)
+      .single();
+
+    // Attach embassy to tracker
+    const trackerWithEmbassy = {
+      ...tracker,
+      embassy: embassy || null,
+    };
+
     // Get recent results
     const { data: results } = await supabase
       .from("tracker_results")
       .select("*")
-      .eq("tracker_id", params.id)
+      .eq("tracker_id", id)
       .order("checked_at", { ascending: false })
       .limit(50);
 
-    return NextResponse.json({ tracker, results });
+    return NextResponse.json({ tracker: trackerWithEmbassy, results });
   } catch (error) {
     console.error("Error fetching tracker:", error);
     const message =
@@ -50,9 +60,10 @@ export async function GET(
 // PATCH /api/trackers/[id] - Update tracker
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const supabase = await createClient();
     const {
       data: { user },
@@ -68,7 +79,7 @@ export async function PATCH(
     const { data: existing } = await supabase
       .from("trackers")
       .select("user_id")
-      .eq("id", params.id)
+      .eq("id", id)
       .single();
 
     if (!existing || existing.user_id !== user.id) {
@@ -79,7 +90,7 @@ export async function PATCH(
     const { data: tracker, error } = await supabase
       .from("trackers")
       .update(body)
-      .eq("id", params.id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -108,9 +119,10 @@ export async function PATCH(
 // DELETE /api/trackers/[id] - Delete tracker
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const supabase = await createClient();
     const {
       data: { user },
@@ -124,7 +136,7 @@ export async function DELETE(
     const { data: existing } = await supabase
       .from("trackers")
       .select("user_id, name")
-      .eq("id", params.id)
+      .eq("id", id)
       .single();
 
     if (!existing || existing.user_id !== user.id) {
@@ -132,10 +144,7 @@ export async function DELETE(
     }
 
     // Delete tracker (cascade will delete results and notifications)
-    const { error } = await supabase
-      .from("trackers")
-      .delete()
-      .eq("id", params.id);
+    const { error } = await supabase.from("trackers").delete().eq("id", id);
 
     if (error) throw error;
 
@@ -143,7 +152,7 @@ export async function DELETE(
     await supabase.from("audit_logs").insert({
       event_type: "tracker_deleted",
       entity_type: "tracker",
-      entity_id: params.id,
+      entity_id: id,
       user_id: user.id,
       event_data: {
         tracker_name: existing.name,
