@@ -96,7 +96,7 @@ export default function DashboardClient() {
     <div className="min-h-screen bg-gray-50">
       {/* Payment Status Messages */}
       {paymentStatus === "success" && (
-        <div className="fixed top-8 right-4 z-50 animate-slide-down">
+        <div className="fixed top-6 right-4 z-[999] animate-slide-down">
           <div className="bg-green-50 border border-green-200 rounded-xl shadow-lg p-4 flex items-start space-x-3 max-w-md">
             <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
             <div className="flex-1">
@@ -119,7 +119,7 @@ export default function DashboardClient() {
       )}
 
       {paymentStatus === "cancelled" && (
-        <div className="fixed top-8 right-4 z-50 animate-slide-down">
+        <div className="fixed top-6 right-4 z-[999] animate-slide-down">
           <div className="bg-orange-50 border border-orange-200 rounded-xl shadow-lg p-4 flex items-start space-x-3 max-w-md">
             <XCircle className="w-6 h-6 text-orange-600 flex-shrink-0" />
             <div className="flex-1">
